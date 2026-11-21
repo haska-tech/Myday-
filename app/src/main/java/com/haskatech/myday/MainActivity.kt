@@ -225,6 +225,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
     var recurrenceRule by remember { mutableStateOf("None") }
     var scheduledAt by remember { mutableStateOf<Long?>(null) }
     var reminderEnabled by remember { mutableStateOf(true) }
+    var reminderOffsetMinutes by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
     val dateLabel = scheduledAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) }
         ?: "Not scheduled"
@@ -270,7 +271,19 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
-                        Text("Remind me at the scheduled time", color = Navy, fontSize = 13.sp)
+                        Text("Enable reminder", color = Navy, fontSize = 13.sp)
+                    }
+                    if (reminderEnabled) {
+                        Text("Remind me", color = Navy, fontWeight = FontWeight.Medium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(0, 5, 10, 15).forEach { minutes ->
+                                FilterChip(
+                                    selected = reminderOffsetMinutes == minutes,
+                                    onClick = { reminderOffsetMinutes = minutes },
+                                    label = { Text(if (minutes == 0) "At time" else "$minutes min before", fontSize = 10.sp) }
+                                )
+                            }
+                        }
                     }
                     TextButton(onClick = { scheduledAt = null; recurrenceRule = "None" }) { Text("Clear schedule") }
                 }
@@ -278,7 +291,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
         },
         confirmButton = {
             TextButton(onClick = {
-                val reminder = if (reminderEnabled) scheduledAt else null
+                val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
                 onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
             }, enabled = title.isNotBlank()) { Text("Save") }
         },
