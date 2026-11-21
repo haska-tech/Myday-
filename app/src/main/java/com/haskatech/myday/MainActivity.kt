@@ -41,6 +41,7 @@ import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TimeTrackingSessionEntity
 import com.haskatech.myday.data.TimeTrackingEntryEntity
 import com.haskatech.myday.focus.TimeTrackingRules
+import com.haskatech.myday.focus.VoiceCaptureRules
 import kotlinx.coroutines.delay
 
 private val Navy = Color(0xFF14243A)
