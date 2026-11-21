@@ -8,6 +8,7 @@ class TaskTimeTrackingRepository(private val database: MyDayDatabase) {
     private val tasks = database.taskDao()
     private val sessions = database.timeTrackingDao()
     val activeTracking: Flow<TimeTrackingSessionEntity?> = sessions.observeSession()
+    val entries: Flow<List<TimeTrackingEntryEntity>> = sessions.observeEntries()
 
     suspend fun start(taskId: Long, nowMillis: Long = System.currentTimeMillis()): Boolean =
         database.withTransaction {
@@ -22,12 +23,24 @@ class TaskTimeTrackingRepository(private val database: MyDayDatabase) {
             true
         }
 
+    private suspend fun recordSegment(taskId: Long, startedAtMillis: Long, endedAtMillis: Long) {
+        val duration = TimeTrackingRules.elapsedMillis(startedAtMillis, endedAtMillis)
+        if (duration <= 0L) return
+        sessions.insertEntry(TimeTrackingEntryEntity(
+            taskId = taskId,
+            startedAtMillis = startedAtMillis,
+            endedAtMillis = maxOf(startedAtMillis, endedAtMillis),
+            durationMillis = duration
+        ))
+        tasks.addTimeSpent(taskId, duration)
+    }
+
     suspend fun pause(taskId: Long, nowMillis: Long = System.currentTimeMillis()) {
         database.withTransaction {
             val current = sessions.getSession() ?: return@withTransaction
-            if (current.taskId != taskId || current.startedAtMillis == null) return@withTransaction
-            val elapsed = TimeTrackingRules.elapsedMillis(current.startedAtMillis, nowMillis)
-            if (elapsed > 0L) tasks.addTimeSpent(taskId, elapsed)
+            val startedAt = current.startedAtMillis ?: return@withTransaction
+            if (current.taskId != taskId) return@withTransaction
+            recordSegment(taskId, startedAt, nowMillis)
             sessions.saveSession(current.copy(startedAtMillis = null))
         }
     }
@@ -36,10 +49,7 @@ class TaskTimeTrackingRepository(private val database: MyDayDatabase) {
         database.withTransaction {
             val current = sessions.getSession() ?: return@withTransaction
             if (current.taskId != taskId) return@withTransaction
-            if (current.startedAtMillis != null) {
-                val elapsed = TimeTrackingRules.elapsedMillis(current.startedAtMillis, nowMillis)
-                if (elapsed > 0L) tasks.addTimeSpent(taskId, elapsed)
-            }
+            current.startedAtMillis?.let { recordSegment(taskId, it, nowMillis) }
             sessions.clearSession()
         }
     }

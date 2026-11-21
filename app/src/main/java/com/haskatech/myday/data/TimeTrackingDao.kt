@@ -19,4 +19,10 @@ interface TimeTrackingDao {
 
     @Query("DELETE FROM time_tracking_session WHERE id = 1")
     suspend fun clearSession()
+
+    @Insert
+    suspend fun insertEntry(entry: TimeTrackingEntryEntity)
+
+    @Query("SELECT * FROM time_tracking_entry ORDER BY startedAtMillis ASC")
+    fun observeEntries(): Flow<List<TimeTrackingEntryEntity>>
 }
