@@ -48,7 +48,14 @@ class MyDayWidgetProvider : AppWidgetProvider() {
         }
 
         private fun render(context: Context, manager: AppWidgetManager, widgetId: Int, tasks: List<TaskEntity>) {
-            val views = RemoteViews(context.packageName, R.layout.myday_widget)
+            val options = manager.getAppWidgetOptions(widgetId)
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+            val layoutId = when {
+                minWidth < 180 -> R.layout.myday_widget_small
+                minWidth < 300 -> R.layout.myday_widget_medium
+                else -> R.layout.myday_widget_large
+            }
+            val views = RemoteViews(context.packageName, layoutId)
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
             val todayTasks = tasks.filter { task ->
