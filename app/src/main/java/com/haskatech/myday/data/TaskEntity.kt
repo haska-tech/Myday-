@@ -9,6 +9,7 @@ data class TaskEntity(
     val title: String,
     val notes: String = "",
     val scheduledAtMillis: Long? = null,
+    val reminderAtMillis: Long? = null,
     val priority: String = "Normal",
     val isTopPriority: Boolean = false,
     val isCompleted: Boolean = false,
