@@ -35,6 +35,7 @@ class TaskRepository(private val taskDao: TaskDao) {
             reminderAtMillis = reminderOffset?.let { nextDate + it },
             isCompleted = false,
             isTopPriority = false,
+            timeSpentMillis = 0L,
             createdAtMillis = System.currentTimeMillis()
         )
         val newId = taskDao.insert(nextTask)

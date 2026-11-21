@@ -1,5 +1,6 @@
 package com.haskatech.myday.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -15,5 +16,5 @@ data class TaskEntity(
     val isTopPriority: Boolean = false,
     val isCompleted: Boolean = false,
     val createdAtMillis: Long = System.currentTimeMillis(),
-    val timeSpentMillis: Long = 0L
+    @ColumnInfo(defaultValue = "0") val timeSpentMillis: Long = 0L
 )
