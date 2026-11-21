@@ -11,6 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
+import java.text.SimpleDateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -295,14 +297,23 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         if (scheduled.isEmpty()) {
             Text("No scheduled tasks yet. Add a task and choose a date and time.", color = Muted)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(scheduled, key = { it.id }) { task ->
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
-                                color = Muted, fontSize = 12.sp)
-                            Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold)
-                            if (task.reminderAtMillis != null) Text("Reminder set", color = Muted, fontSize = 11.sp)
+            val grouped = scheduled.groupBy {
+                SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date(it.scheduledAtMillis!!))
+            }.toList()
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(grouped, key = { it.first }) { (day, dayTasks) ->
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text(day, color = Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        dayTasks.forEach { task ->
+                            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                                Column(Modifier.padding(14.dp)) {
+                                    Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
+                                        color = Muted, fontSize = 12.sp)
+                                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold)
+                                    if (task.reminderAtMillis != null) Text("Reminder set", color = Muted, fontSize = 11.sp)
+                                    if (task.recurrenceRule != "None") Text("Repeats ${task.recurrenceRule.lowercase()}", color = Muted, fontSize = 11.sp)
+                                }
+                            }
                         }
                     }
                 }
