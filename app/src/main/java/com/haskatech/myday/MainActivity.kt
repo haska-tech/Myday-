@@ -102,8 +102,8 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     if (showAddDialog) {
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
-            onAdd = { title, priority, scheduledAt, reminderAt ->
-                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt)
+            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule)
                 showAddDialog = false
             }
         )
@@ -217,9 +217,10 @@ private fun TaskRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, Long?) -> Unit) {
+private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, Long?, String) -> Unit) {
     var title by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("Normal") }
+    var recurrenceRule by remember { mutableStateOf("None") }
     var scheduledAt by remember { mutableStateOf<Long?>(null) }
     var reminderEnabled by remember { mutableStateOf(true) }
     val context = LocalContext.current
@@ -259,18 +260,24 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                     Text("Schedule: $dateLabel")
                 }
                 if (scheduledAt != null) {
+                    Text("Repeat", color = Navy, fontWeight = FontWeight.Medium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("None", "Daily", "Weekly", "Monthly").forEach { option ->
+                            FilterChip(selected = recurrenceRule == option, onClick = { recurrenceRule = option }, label = { Text(option, fontSize = 11.sp) })
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
                         Text("Remind me at the scheduled time", color = Navy, fontSize = 13.sp)
                     }
-                    TextButton(onClick = { scheduledAt = null }) { Text("Clear schedule") }
+                    TextButton(onClick = { scheduledAt = null; recurrenceRule = "None" }) { Text("Clear schedule") }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt else null
-                onAdd(title, priority, scheduledAt, reminder)
+                onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
             }, enabled = title.isNotBlank()) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
