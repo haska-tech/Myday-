@@ -30,14 +30,10 @@ object PomodoroTimerManager {
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    private fun duration(snapshot: PomodoroSnapshot, phase: String = snapshot.phase): Long {
-        val minutes = when (phase) {
-            "SHORT_BREAK" -> snapshot.shortBreakMinutes
-            "LONG_BREAK" -> snapshot.longBreakMinutes
-            else -> snapshot.focusMinutes
-        }
-        return minutes.coerceIn(1, 120) * 60_000L
-    }
+    private fun duration(snapshot: PomodoroSnapshot, phase: String = snapshot.phase): Long =
+        PomodoroRules.durationMillis(
+            phase, snapshot.focusMinutes, snapshot.shortBreakMinutes, snapshot.longBreakMinutes
+        )
 
     private fun read(context: Context): PomodoroSnapshot {
         val p = prefs(context)
@@ -58,7 +54,7 @@ object PomodoroTimerManager {
             return read(context)
         }
         return if (current.isRunning) current.copy(
-            remainingMillis = max(0L, current.endAtMillis - System.currentTimeMillis())
+            remainingMillis = PomodoroRules.remainingMillis(current.endAtMillis, System.currentTimeMillis())
         ) else current
     }
 
@@ -75,7 +71,7 @@ object PomodoroTimerManager {
     fun pause(context: Context) {
         val current = read(context)
         if (!current.isRunning) return
-        val remaining = max(0L, current.endAtMillis - System.currentTimeMillis())
+        val remaining = PomodoroRules.remainingMillis(current.endAtMillis, System.currentTimeMillis())
         prefs(context).edit().putBoolean("running", false).putLong("remaining", remaining).apply()
         cancel(context)
     }
@@ -132,11 +128,9 @@ object PomodoroTimerManager {
         val current = read(context)
         if (!current.isRunning) return
         cancel(context)
-        val sessions = if (current.phase == "FOCUS") current.completedFocusSessions + 1
-            else current.completedFocusSessions
-        val nextPhase = if (current.phase == "FOCUS") {
-            if (sessions % 4 == 0) "LONG_BREAK" else "SHORT_BREAK"
-        } else "FOCUS"
+        val transition = PomodoroRules.nextPhase(current.phase, current.completedFocusSessions)
+        val sessions = transition.completedFocusSessions
+        val nextPhase = transition.nextPhase
         val nextRemaining = duration(current, nextPhase)
         prefs(context).edit().putString("phase", nextPhase).putBoolean("running", false)
             .putLong("end_at", 0L).putLong("remaining", nextRemaining)
