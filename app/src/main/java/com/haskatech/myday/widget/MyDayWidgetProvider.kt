@@ -25,6 +25,23 @@ import java.util.Locale
 
 class MyDayWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == ACTION_REFRESH || intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
+            refreshAll(context)
+        }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        requestRefresh(context)
+    }
+
+    private fun refreshAll(context: Context) {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
