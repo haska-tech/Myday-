@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [TaskEntity::class], version = 3, exportSchema = false)
+@Database(entities = [TaskEntity::class], version = 4, exportSchema = false)
 abstract class MyDayDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 
@@ -23,6 +23,12 @@ abstract class MyDayDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE tasks ADD COLUMN recurrenceRule TEXT NOT NULL DEFAULT 'None'")
+            }
+        }
+
         @Volatile private var INSTANCE: MyDayDatabase? = null
 
         fun getDatabase(context: Context): MyDayDatabase =
@@ -31,7 +37,7 @@ abstract class MyDayDatabase : RoomDatabase() {
                     context.applicationContext,
                     MyDayDatabase::class.java,
                     "myday_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
             }
     }
 }
