@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.util.SizeF
 import android.widget.RemoteViews
 import com.haskatech.myday.MainActivity
 import com.haskatech.myday.R
@@ -66,13 +68,22 @@ class MyDayWidgetProvider : AppWidgetProvider() {
 
         private fun render(context: Context, manager: AppWidgetManager, widgetId: Int, tasks: List<TaskEntity>) {
             val options = manager.getAppWidgetOptions(widgetId)
-            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-            val layoutId = when {
-                minWidth < 180 -> R.layout.myday_widget_small
-                minWidth < 300 -> R.layout.myday_widget_medium
-                else -> R.layout.myday_widget_large
+            val viewSpecs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                listOf(
+                    SizeF(110f, 110f) to R.layout.myday_widget_small,
+                    SizeF(180f, 110f) to R.layout.myday_widget_medium,
+                    SizeF(300f, 180f) to R.layout.myday_widget_large
+                )
+            } else {
+                val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                val layoutId = when {
+                    minWidth < 180 -> R.layout.myday_widget_small
+                    minWidth < 300 -> R.layout.myday_widget_medium
+                    else -> R.layout.myday_widget_large
+                }
+                listOf(SizeF(minWidth.toFloat(), 110f) to layoutId)
             }
-            val views = RemoteViews(context.packageName, layoutId)
+            val viewsBySize = linkedMapOf<SizeF, RemoteViews>()
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
             val todayTasks = tasks.filter { task ->
@@ -90,27 +101,52 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                     add("• ${time?.let { "$it  " } ?: ""}${task.title}")
                 }
             }
-            views.setTextViewText(R.id.widget_date, SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date()))
-            views.setTextViewText(R.id.widget_priorities, if (priorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES")
-            views.setTextViewText(
-                R.id.widget_tasks,
-                lines.take(6).joinToString("\n").ifBlank { "Nothing planned yet.\nTap to add a task." }
-            )
-
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            val todayTasks = tasks.filter { task ->
+                task.scheduledAtMillis?.let {
+                    Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today
+                } == true && !task.isCompleted
+            }.sortedBy { it.scheduledAtMillis }
+            val priorities = tasks.filter { it.isTopPriority && !it.isCompleted }
+            val lines = buildList {
+                priorities.take(3).forEach { add("★ ${it.title}") }
+                todayTasks.filterNot { it.isTopPriority }.take(6 - priorities.take(3).size).forEach { task ->
+                    val time = task.scheduledAtMillis?.let {
+                        DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it))
+                    }
+                    add("• ${time?.let { "$it  " } ?: ""}${task.title}")
+                }
+            }
             val openPending = PendingIntent.getActivity(
                 context, widgetId, Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widget_tasks, openPending)
-            views.setOnClickPendingIntent(R.id.widget_title, openPending)
-            views.setOnClickPendingIntent(R.id.widget_footer, openPending)
             val refreshPending = PendingIntent.getBroadcast(
                 context, widgetId,
                 Intent(context, MyDayWidgetProvider::class.java).setAction(ACTION_REFRESH),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widget_refresh, refreshPending)
-            manager.updateAppWidget(widgetId, views)
+            viewSpecs.forEach { (size, layoutId) ->
+                val views = RemoteViews(context.packageName, layoutId)
+                views.setTextViewText(R.id.widget_date, SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date()))
+                views.setTextViewText(R.id.widget_priorities, if (priorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES")
+                views.setTextViewText(
+                    R.id.widget_tasks,
+                    lines.take(6).joinToString("\n").ifBlank { "Nothing planned yet.\nTap to add a task." }
+                )
+                views.setOnClickPendingIntent(R.id.widget_tasks, openPending)
+                views.setOnClickPendingIntent(R.id.widget_title, openPending)
+                views.setOnClickPendingIntent(R.id.widget_footer, openPending)
+                views.setOnClickPendingIntent(R.id.widget_refresh, refreshPending)
+                viewsBySize[size] = views
+            }
+            val responsiveViews = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                RemoteViews(viewsBySize)
+            } else {
+                viewsBySize.values.first()
+            }
+            manager.updateAppWidget(widgetId, responsiveViews)
         }
     }
 }
