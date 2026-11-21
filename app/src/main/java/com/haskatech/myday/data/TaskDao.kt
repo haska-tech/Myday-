@@ -8,14 +8,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY isCompleted ASC, CASE priority WHEN 'High' THEN 0 WHEN 'Normal' THEN 1 ELSE 2 END, createdAtMillis DESC")
+    @Query("SELECT * FROM tasks ORDER BY isCompleted ASC, isTopPriority DESC, CASE priority WHEN 'High' THEN 0 WHEN 'Normal' THEN 1 ELSE 2 END, createdAtMillis DESC")
     fun observeTasks(): Flow<List<TaskEntity>>
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE isTopPriority = 1 AND isCompleted = 0")
+    suspend fun countActiveTopPriorities(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: TaskEntity)
 
     @Query("UPDATE tasks SET isCompleted = :completed WHERE id = :taskId")
     suspend fun setCompleted(taskId: Long, completed: Boolean)
+
+    @Query("UPDATE tasks SET isTopPriority = :isTop WHERE id = :taskId")
+    suspend fun setTopPriority(taskId: Long, isTop: Boolean)
+
+    @Query("DELETE FROM tasks WHERE taskId = :taskId")
+    suspend fun unusedDeletePlaceholder(taskId: Long)
 
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
