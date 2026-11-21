@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="myday_widget_description">See your top priorities and today's scheduled tasks.</string>
+    <string name="myday_widget_description">View top priorities and scheduled tasks for today.</string>
 </resources>
