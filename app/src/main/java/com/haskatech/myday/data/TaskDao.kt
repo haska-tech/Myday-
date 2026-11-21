@@ -23,9 +23,6 @@ interface TaskDao {
     @Query("UPDATE tasks SET isTopPriority = :isTop WHERE id = :taskId")
     suspend fun setTopPriority(taskId: Long, isTop: Boolean)
 
-    @Query("DELETE FROM tasks WHERE taskId = :taskId")
-    suspend fun unusedDeletePlaceholder(taskId: Long)
-
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
 }
