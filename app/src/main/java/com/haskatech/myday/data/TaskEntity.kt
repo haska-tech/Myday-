@@ -10,6 +10,7 @@ data class TaskEntity(
     val notes: String = "",
     val scheduledAtMillis: Long? = null,
     val priority: String = "Normal",
+    val isTopPriority: Boolean = false,
     val isCompleted: Boolean = false,
     val createdAtMillis: Long = System.currentTimeMillis()
 )
