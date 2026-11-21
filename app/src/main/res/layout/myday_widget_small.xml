@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="10dp" android:background="#FFFFFF">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="MyDay · TOP 3"
+        android:textColor="#14233B" android:textSize="15sp" android:textStyle="bold" />
+    <TextView android:id="@+id/widget_date" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Today" android:textColor="#687386" android:textSize="10sp" />
+    <TextView android:id="@+id/widget_tasks" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:gravity="top"
+        android:maxLines="3" android:ellipsize="end" android:text="Your priorities"
+        android:textColor="#14233B" android:textSize="12sp" />
+    <TextView android:id="@+id/widget_refresh" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="↻ Refresh" android:textColor="#4C8C24"
+        android:textSize="10sp" android:textStyle="bold" />
+    <TextView android:id="@+id/widget_priorities" android:layout_width="0dp"
+        android:layout_height="0dp" android:text="TOP PRIORITIES" />
+    <TextView android:id="@+id/widget_footer" android:layout_width="0dp"
+        android:layout_height="0dp" android:text="Tap to open MyDay" />
+</LinearLayout>
