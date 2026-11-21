@@ -5,6 +5,10 @@ on:
     branches: [main, development]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   assemble:
