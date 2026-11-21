@@ -22,12 +22,9 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null) {
         viewModelScope.launch {
-            repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis)
-            if (reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
-                // The newly inserted row is observed by Room; task IDs are assigned by the database.
-                val saved = repository.tasks.stateIn(this, SharingStarted.Eagerly, emptyList()).value
-                    .firstOrNull { it.title == title.trim() && it.scheduledAtMillis == scheduledAtMillis }
-                if (saved != null) ReminderScheduler.schedule(getApplication(), saved.id, saved.title, reminderAtMillis)
+            val taskId = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis)
+            if (taskId != null && reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
+                ReminderScheduler.schedule(getApplication(), taskId, title.trim(), reminderAtMillis)
             }
         }
     }
