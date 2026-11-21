@@ -9,7 +9,7 @@
             </intent-filter>
         </activity>
         <receiver android:name=".reminders.TaskReminderReceiver" android:exported="false" />
-        <receiver android:name=".widget.MyDayWidgetProvider" android:exported="false">
+        <receiver android:name=".widget.MyDayWidgetProvider" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.haskatech.myday.widget.REFRESH" />
