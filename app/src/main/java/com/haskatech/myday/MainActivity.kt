@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TimeTrackingSessionEntity
+import com.haskatech.myday.data.TimeTrackingEntryEntity
 import com.haskatech.myday.focus.TimeTrackingRules
 import kotlinx.coroutines.delay
 
@@ -69,6 +70,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
     val activeTracking by tasksViewModel.activeTracking.collectAsStateWithLifecycle()
+    val timeTrackingEntries by tasksViewModel.timeTrackingEntries.collectAsStateWithLifecycle()
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(activeTracking?.startedAtMillis) {
         if (activeTracking?.startedAtMillis != null) {
@@ -111,7 +113,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
                 { tasksViewModel.deleteTask(it) }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
-            3 -> InsightsScreen(tasks, activeTracking, nowMillis, Modifier.padding(padding))
+            3 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
             else -> PlaceholderScreen("Settings", "Personalise your planning experience.", Modifier.padding(padding))
         }
     }
@@ -502,10 +504,18 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, nowMillis: Long, modifier: Modifier = Modifier) {
+private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, entries: List<TimeTrackingEntryEntity>, nowMillis: Long, modifier: Modifier = Modifier) {
     val done = tasks.count { it.isCompleted }
     val percent = if (tasks.isEmpty()) 0 else done * 100 / tasks.size
     val trackedTotal = tasks.sumOf { it.timeSpentMillis } + if (tracking?.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L
+    val reportZone = remember { java.time.ZoneId.of("Africa/Kampala") }
+    val today = java.time.LocalDate.now(reportZone)
+    val weekStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+    val intervals = entries.map { com.haskatech.myday.focus.TimeInterval(it.startedAtMillis, it.endedAtMillis) } +
+        listOfNotNull(tracking?.startedAtMillis?.let { com.haskatech.myday.focus.TimeInterval(it, nowMillis) })
+    val dailyTotals = TimeTrackingRules.durationByDate(intervals, reportZone)
+    val todayTracked = dailyTotals[today] ?: 0L
+    val weekTracked = (0L..6L).sumOf { dailyTotals[weekStart.plusDays(it)] ?: 0L }
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Insights", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Text("A simple view of today's progress.", color = Muted)
@@ -513,7 +523,18 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
             Column(Modifier.padding(18.dp)) {
                 Text("Time tracked", color = Navy, fontWeight = FontWeight.Bold)
                 Text(TimeTrackingRules.formatDuration(trackedTotal), color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Text("Across all tasks", color = Muted, fontSize = 12.sp)
+                Text("Lifetime total across tasks", color = Muted, fontSize = 12.sp)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Today", color = Muted, fontSize = 12.sp)
+                        Text(TimeTrackingRules.formatDuration(todayTracked), color = Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("This week · Mon–Sun", color = Muted, fontSize = 12.sp)
+                        Text(TimeTrackingRules.formatDuration(weekTracked), color = Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {

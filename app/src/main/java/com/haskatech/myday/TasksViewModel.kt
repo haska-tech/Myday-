@@ -24,6 +24,12 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         null
     )
 
+    val timeTrackingEntries = timeTrackingRepository.entries.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyList()
+    )
+
     val tasks = repository.tasks.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
