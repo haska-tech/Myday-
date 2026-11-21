@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.haskatech.myday.data.MyDayDatabase
 import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TaskRepository
+import com.haskatech.myday.reminders.ReminderScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,8 +20,16 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         emptyList()
     )
 
-    fun addTask(title: String, priority: String = "Normal") {
-        viewModelScope.launch { repository.addTask(title, priority) }
+    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null) {
+        viewModelScope.launch {
+            repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis)
+            if (reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
+                // The newly inserted row is observed by Room; task IDs are assigned by the database.
+                val saved = repository.tasks.stateIn(this, SharingStarted.Eagerly, emptyList()).value
+                    .firstOrNull { it.title == title.trim() && it.scheduledAtMillis == scheduledAtMillis }
+                if (saved != null) ReminderScheduler.schedule(getApplication(), saved.id, saved.title, reminderAtMillis)
+            }
+        }
     }
 
     fun setCompleted(task: TaskEntity, completed: Boolean) {
@@ -34,6 +43,9 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteTask(task: TaskEntity) {
-        viewModelScope.launch { repository.deleteTask(task.id) }
+        viewModelScope.launch {
+            ReminderScheduler.cancel(getApplication(), task.id)
+            repository.deleteTask(task.id)
+        }
     }
 }
