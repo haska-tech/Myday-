@@ -23,6 +23,10 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None") {
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
+            if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
+
             val taskId = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule)
             if (taskId != null && reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
                 ReminderScheduler.schedule(getApplication(), taskId, title.trim(), reminderAtMillis)
