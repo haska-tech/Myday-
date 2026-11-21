@@ -42,9 +42,7 @@ class TaskRepository(private val taskDao: TaskDao) {
     }
 
     suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean {
-        if (isTop && taskDao.countActiveTopPriorities() >= 3) return false
-        taskDao.setTopPriority(id, isTop)
-        return true
+        return taskDao.setTopPriorityIfAllowed(id, isTop) > 0
     }
 
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
