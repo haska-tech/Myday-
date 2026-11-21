@@ -27,6 +27,12 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.setCompleted(task.id, completed) }
     }
 
+    fun setTopPriority(task: TaskEntity, isTop: Boolean, onLimitReached: () -> Unit) {
+        viewModelScope.launch {
+            if (!repository.setTopPriority(task.id, isTop)) onLimitReached()
+        }
+    }
+
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch { repository.deleteTask(task.id) }
     }
