@@ -34,6 +34,12 @@ interface TaskDao {
     @Query("UPDATE tasks SET isCompleted = :completed, isTopPriority = CASE WHEN :completed = 1 THEN 0 ELSE isTopPriority END WHERE id = :taskId")
     suspend fun setCompleted(taskId: Long, completed: Boolean)
 
+    @Query("UPDATE tasks SET timeSpentMillis = timeSpentMillis + :durationMillis WHERE id = :taskId")
+    suspend fun addTimeSpent(taskId: Long, durationMillis: Long)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE id = :taskId)")
+    suspend fun taskExists(taskId: Long): Boolean
+
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
 }

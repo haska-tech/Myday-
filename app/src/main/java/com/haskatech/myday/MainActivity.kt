@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.TimeTrackingSessionEntity
+import com.haskatech.myday.focus.TimeTrackingRules
+import kotlinx.coroutines.delay
 
 private val Navy = Color(0xFF14243A)
 private val Lime = Color(0xFFB7E445)
@@ -65,6 +68,13 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         }
     }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
+    val activeTracking by tasksViewModel.activeTracking.collectAsStateWithLifecycle()
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(activeTracking?.startedAtMillis) {
+        if (activeTracking?.startedAtMillis != null) {
+            while (true) { nowMillis = System.currentTimeMillis(); delay(1_000) }
+        }
+    }
     val labels = listOf("My Day", "Tasks", "Calendar", "Insights", "Settings")
     val icons = listOf(Icons.Default.Today, Icons.Default.CheckCircle, Icons.Default.CalendarMonth, Icons.Default.Insights, Icons.Default.Settings)
     val toggleTop: (TaskEntity, Boolean) -> Unit = { task, selected ->
@@ -93,11 +103,15 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         }
     ) { padding ->
         when (tab) {
-            0 -> TodayScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop, Modifier.padding(padding))
-            1 -> TasksScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
-                { tasksViewModel.deleteTask(it) }, Modifier.padding(padding))
+            0 -> TodayScreen(tasks, activeTracking, nowMillis,
+                { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
+                { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
+            1 -> TasksScreen(tasks, activeTracking, nowMillis,
+                { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
+                { tasksViewModel.deleteTask(it) }, { tasksViewModel.startTracking(it) },
+                { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
-            3 -> InsightsScreen(tasks, Modifier.padding(padding))
+            3 -> InsightsScreen(tasks, activeTracking, nowMillis, Modifier.padding(padding))
             else -> PlaceholderScreen("Settings", "Personalise your planning experience.", Modifier.padding(padding))
         }
     }
@@ -124,8 +138,13 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
 @Composable
 private fun TodayScreen(
     tasks: List<TaskEntity>,
+    tracking: TimeTrackingSessionEntity?,
+    nowMillis: Long,
     onToggle: (TaskEntity, Boolean) -> Unit,
     onTopPriority: (TaskEntity, Boolean) -> Unit,
+    onStartTracking: (TaskEntity) -> Unit,
+    onPauseTracking: (TaskEntity) -> Unit,
+    onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -176,7 +195,7 @@ private fun TodayScreen(
         if (tasks.isEmpty()) {
             item { Text("No tasks yet. Tap + to add your first task.", color = Muted) }
         } else {
-            items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority) }
+            items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, tracking = tracking, nowMillis = nowMillis, onStartTracking = onStartTracking, onPauseTracking = onPauseTracking, onStopTracking = onStopTracking) }
         }
         item { Spacer(Modifier.height(80.dp)) }
     }
@@ -185,9 +204,14 @@ private fun TodayScreen(
 @Composable
 private fun TasksScreen(
     tasks: List<TaskEntity>,
+    tracking: TimeTrackingSessionEntity?,
+    nowMillis: Long,
     onToggle: (TaskEntity, Boolean) -> Unit,
     onTopPriority: (TaskEntity, Boolean) -> Unit,
     onDelete: (TaskEntity) -> Unit,
+    onStartTracking: (TaskEntity) -> Unit,
+    onPauseTracking: (TaskEntity) -> Unit,
+    onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxSize().padding(18.dp)) {
@@ -198,7 +222,7 @@ private fun TasksScreen(
             Text("Nothing here yet. Tap + to create a task.", color = Muted)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, onDelete) }
+                items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking) }
             }
         }
     }
@@ -209,7 +233,12 @@ private fun TaskRow(
     task: TaskEntity,
     onToggle: (TaskEntity, Boolean) -> Unit,
     onTopPriority: (TaskEntity, Boolean) -> Unit,
-    onDelete: ((TaskEntity) -> Unit)? = null
+    onDelete: ((TaskEntity) -> Unit)? = null,
+    tracking: TimeTrackingSessionEntity? = null,
+    nowMillis: Long = System.currentTimeMillis(),
+    onStartTracking: (TaskEntity) -> Unit = {},
+    onPauseTracking: (TaskEntity) -> Unit = {},
+    onStopTracking: (TaskEntity) -> Unit = {}
 ) {
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -219,6 +248,23 @@ private fun TaskRow(
                 Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                 Text(task.priority, color = Muted, fontSize = 12.sp)
+                Text("Tracked " + TimeTrackingRules.formatDuration(task.timeSpentMillis + if (tracking?.taskId == task.id && tracking.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L), color = Muted, fontSize = 12.sp)
+                if (!task.isCompleted) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (tracking?.taskId == task.id) {
+                            if (tracking.startedAtMillis == null) {
+                                TextButton(onClick = { onStartTracking(task) }) { Text("Resume", fontSize = 11.sp) }
+                            } else {
+                                TextButton(onClick = { onPauseTracking(task) }) { Text("Pause", fontSize = 11.sp) }
+                            }
+                            TextButton(onClick = { onStopTracking(task) }) { Text("Stop", fontSize = 11.sp) }
+                        } else {
+                            TextButton(onClick = { onStartTracking(task) }, enabled = tracking == null) {
+                                Text("Start timer", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
             }
             if (!task.isCompleted) {
                 TextButton(onClick = { onTopPriority(task, !task.isTopPriority) }) {
@@ -456,12 +502,20 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun InsightsScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
+private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, nowMillis: Long, modifier: Modifier = Modifier) {
     val done = tasks.count { it.isCompleted }
     val percent = if (tasks.isEmpty()) 0 else done * 100 / tasks.size
+    val trackedTotal = tasks.sumOf { it.timeSpentMillis } + if (tracking?.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Insights", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Text("A simple view of today's progress.", color = Muted)
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.padding(18.dp)) {
+                Text("Time tracked", color = Navy, fontWeight = FontWeight.Bold)
+                Text(TimeTrackingRules.formatDuration(trackedTotal), color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text("Across all tasks", color = Muted, fontSize = 12.sp)
+            }
+        }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.padding(18.dp)) {
                 Text("Task completion", color = Navy, fontWeight = FontWeight.Bold)

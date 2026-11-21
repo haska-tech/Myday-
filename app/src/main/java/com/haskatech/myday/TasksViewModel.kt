@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.haskatech.myday.data.MyDayDatabase
 import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TaskRepository
+import com.haskatech.myday.data.TaskTimeTrackingRepository
 import com.haskatech.myday.reminders.ReminderScheduler
 import com.haskatech.myday.widget.MyDayWidgetProvider
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,7 +14,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = TaskRepository(MyDayDatabase.getDatabase(application).taskDao())
+    private val database = MyDayDatabase.getDatabase(application)
+    private val repository = TaskRepository(database.taskDao())
+    private val timeTrackingRepository = TaskTimeTrackingRepository(database)
+
+    val activeTracking = timeTrackingRepository.activeTracking.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        null
+    )
 
     val tasks = repository.tasks.stateIn(
         viewModelScope,
@@ -35,8 +44,15 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun startTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.start(task.id) } }
+
+    fun pauseTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.pause(task.id) } }
+
+    fun stopTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.stop(task.id) } }
+
     fun setCompleted(task: TaskEntity, completed: Boolean) {
         viewModelScope.launch {
+            if (completed) timeTrackingRepository.stop(task.id)
             val nextTask = repository.setCompleted(task, completed)
             if (completed) ReminderScheduler.cancel(getApplication(), task.id)
             if (nextTask?.reminderAtMillis != null && nextTask.reminderAtMillis > System.currentTimeMillis()) {
@@ -55,6 +71,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
+            timeTrackingRepository.stop(task.id)
             ReminderScheduler.cancel(getApplication(), task.id)
             repository.deleteTask(task.id)
             MyDayWidgetProvider.requestRefresh(getApplication())
