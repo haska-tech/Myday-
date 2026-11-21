@@ -227,6 +227,11 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
     var reminderEnabled by remember { mutableStateOf(true) }
     var reminderOffsetMinutes by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
+    val nowMillis = System.currentTimeMillis()
+    val scheduledInFuture = scheduledAt == null || scheduledAt!! > nowMillis
+    val reminderInFuture = !reminderEnabled || scheduledAt == null ||
+        scheduledAt!! - reminderOffsetMinutes * 60_000L > nowMillis
+    val canSave = title.isNotBlank() && scheduledInFuture && reminderInFuture
     val dateLabel = scheduledAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) }
         ?: "Not scheduled"
 
@@ -256,11 +261,16 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                             chosen.set(Calendar.MILLISECOND, 0)
                             scheduledAt = chosen.timeInMillis
                         }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false).show()
-                    }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
+                    }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).apply {
+                        datePicker.minDate = System.currentTimeMillis()
+                    }.show()
                 }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Schedule, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Schedule: $dateLabel")
+                }
+                if (!scheduledInFuture) {
+                    Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
                 if (scheduledAt != null) {
                     Text("Repeat", color = Navy, fontWeight = FontWeight.Medium)
@@ -279,13 +289,17 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                             listOf(0, 5, 10, 15).forEach { minutes ->
                                 FilterChip(
                                     selected = reminderOffsetMinutes == minutes,
+                                    enabled = minutes == 0 || (scheduledAt?.minus(minutes * 60_000L) ?: 0L) > nowMillis,
                                     onClick = { reminderOffsetMinutes = minutes },
                                     label = { Text(if (minutes == 0) "At time" else "$minutes min before", fontSize = 10.sp) }
                                 )
                             }
                         }
+                        if (!reminderInFuture) {
+                            Text("This reminder would be in the past. Choose a shorter lead time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        }
                     }
-                    TextButton(onClick = { scheduledAt = null; recurrenceRule = "None" }) { Text("Clear schedule") }
+                    TextButton(onClick = { scheduledAt = null; recurrenceRule = "None"; reminderOffsetMinutes = 0 }) { Text("Clear schedule") }
                 }
             }
         },
@@ -293,7 +307,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
             TextButton(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
                 onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
-            }, enabled = title.isNotBlank()) { Text("Save") }
+            }, enabled = canSave) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
