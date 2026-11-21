@@ -168,7 +168,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
             3 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
-            else -> PlaceholderScreen("Settings", "Personalise your planning experience.", Modifier.padding(padding))
+            else -> SettingsScreen(Modifier.padding(padding))
         }
     }
 
@@ -263,7 +263,7 @@ private fun TodayScreen(
             }
         }
         if (tasks.isEmpty()) {
-            item { Text("No tasks yet. Tap + to add your first task.", color = Muted) }
+            item { EmptyState(Icons.Default.EventNote, "A fresh start", "Your day is clear. Add a task to give it direction.") }
         } else {
             items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, tracking = tracking, nowMillis = nowMillis, onStartTracking = onStartTracking, onPauseTracking = onPauseTracking, onStopTracking = onStopTracking) }
         }
@@ -290,7 +290,7 @@ private fun TasksScreen(
         Text("Everything you need to move forward.", color = Muted, fontSize = 14.sp)
         Spacer(Modifier.height(16.dp))
         if (tasks.isEmpty()) {
-            Text("Nothing here yet. Tap + to create a task.", color = Muted)
+            EmptyState(Icons.Default.CheckCircleOutline, "Your task list is clear", "Capture your next action and keep moving forward.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking) }
@@ -376,17 +376,28 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a task", color = Navy) },
+        shape = RoundedCornerShape(26.dp),
+        containerColor = Color.White,
+        tonalElevation = 4.dp,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("New task", color = Navy, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Capture it now. Organise it when you're ready.", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Normal)
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("What do you need to do?") },
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Navy, focusedLabelColor = Navy, cursorColor = Navy)
                     )
+                    Surface(shape = RoundedCornerShape(13.dp), color = Color(0xFFF0F3F6)) {
                     val voiceCaptureLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.StartActivityForResult()
                     ) { result ->
@@ -418,8 +429,9 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                     ) {
                         Icon(Icons.Default.Mic, contentDescription = "Add task by voice", tint = Navy)
                     }
+                    }
                 }
-                Text("Priority", color = Navy, fontWeight = FontWeight.Medium)
+                Text("PRIORITY", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("High", "Normal", "Low").forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option }, label = { Text(option) })
@@ -450,7 +462,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                     Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
                 if (scheduledAt != null) {
-                    Text("Repeat", color = Navy, fontWeight = FontWeight.Medium)
+                    Text("REPEAT", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("None", "Daily", "Weekly", "Monthly").forEach { option ->
                             FilterChip(selected = recurrenceRule == option, onClick = { recurrenceRule = option }, label = { Text(option, fontSize = 11.sp) })
@@ -461,7 +473,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                         Text("Enable reminder", color = Navy, fontSize = 13.sp)
                     }
                     if (reminderEnabled) {
-                        Text("Remind me", color = Navy, fontWeight = FontWeight.Medium)
+                        Text("REMIND ME", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf(0, 5, 10, 15).forEach { minutes ->
                                 FilterChip(
@@ -481,12 +493,15 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
                 onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
-            }, enabled = canSave) { Text("Save") }
+            }, enabled = canSave, shape = RoundedCornerShape(13.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
+                Text("Save task", fontWeight = FontWeight.Bold)
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(13.dp)) { Text("Cancel", color = Muted) } }
     )
 }
 
@@ -563,14 +578,23 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
                         Surface(
                             onClick = { selectedDate = date },
                             modifier = Modifier.weight(1f).padding(2.dp).height(54.dp),
-                            color = if (date == selectedDate) Lime else Color.White,
-                            shape = RoundedCornerShape(9.dp)
+                            color = when {
+                                date == selectedDate -> Lime
+                                date == java.time.LocalDate.now(zone) -> Color(0xFFEAF2D4)
+                                else -> Color.White
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            border = if (date == selectedDate) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE8ECF1))
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center) {
                                 Text(date.dayOfMonth.toString(), color = if (inMonth) Navy else Muted,
                                     fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal)
-                                if (count > 0) Text(count.toString(), color = Navy, fontSize = 10.sp)
+                                if (count > 0) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    repeat(count.coerceAtMost(3)) {
+                                        Box(Modifier.size(3.dp).background(if (date == selectedDate) Navy else Color(0xFF82A92D), RoundedCornerShape(50)))
+                                    }
+                                }
                             }
                         }
                     }
@@ -582,14 +606,12 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         val datesToShow = if (view == "Month") listOf(selectedDate) else visibleDates
         val entries = datesToShow.flatMap { date -> tasksFor(date).map { date to it } }
         if (entries.isEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            Text("No scheduled tasks for this ${view.lowercase()}.", color = Muted)
-            Text("Tap + to add a task and give it a date and time.", color = Muted, fontSize = 12.sp)
+            EmptyState(Icons.Default.CalendarToday, "Nothing scheduled", "Your calendar is open. Add a task with a date and time to see it here.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 items(entries, key = { "${it.second.id}-${it.first}" }) { (date, task) ->
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(14.dp)) {
+                        shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.width(76.dp)) {
                                 Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
@@ -664,10 +686,67 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
 }
 
 @Composable
-private fun PlaceholderScreen(title: String, description: String, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().padding(20.dp)) {
-        Text(title.uppercase(Locale.getDefault()), color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Spacer(Modifier.height(8.dp))
-        Text(description, color = Navy, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, message: String) {
+    Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFEAF2D4), modifier = Modifier.size(58.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(28.dp)) }
+            }
+            Text(title, color = Navy, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(message, color = Muted, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+            Text("Settings", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+            Text("A calmer way to plan, built around you.", color = Muted, fontSize = 14.sp)
+        }
+        SettingsGroup("YOUR EXPERIENCE") {
+            SettingsRow(Icons.Default.Palette, "Appearance", "Light theme · Navy, white and lime")
+            SettingsRow(Icons.Default.NotificationsActive, "Reminders", "Choose a reminder when creating each task")
+            SettingsRow(Icons.Default.CalendarMonth, "Calendar", "Week begins on Monday")
+        }
+        SettingsGroup("YOUR PRODUCTIVITY") {
+            SettingsRow(Icons.Default.Timer, "Focus sessions", "Pomodoro timer · 25 / 5 / 15 minutes")
+            SettingsRow(Icons.Default.Insights, "Time tracking", "Track time spent on individual tasks")
+            SettingsRow(Icons.Default.OfflineBolt, "Offline-first", "Your tasks are stored on this device")
+        }
+        SettingsGroup("ABOUT") {
+            SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
+            SettingsRow(Icons.Default.Info, "Version", "0.2.0 · Early access")
+        }
+        Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
+            fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
+}
+
+@Composable
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(title, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+            Column(content = content, modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(shape = RoundedCornerShape(11.dp), color = Color(0xFFF0F3F6), modifier = Modifier.size(37.dp)) {
+            Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(19.dp)) }
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
+            Text(title, color = Navy, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, color = Muted, fontSize = 10.sp)
+        }
     }
 }
