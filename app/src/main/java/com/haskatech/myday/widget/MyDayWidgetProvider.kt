@@ -83,7 +83,7 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 }
                 listOf(SizeF(minWidth.toFloat(), 110f) to layoutId)
             }
-            val viewsBySize = linkedMapOf<SizeF, RemoteViews>()
+
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
             val todayTasks = tasks.filter { task ->
@@ -92,32 +92,18 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 } == true && !task.isCompleted
             }.sortedBy { it.scheduledAtMillis }
             val priorities = tasks.filter { it.isTopPriority && !it.isCompleted }
+            val topPriorities = priorities.take(3)
+            val remainingSlots = (6 - topPriorities.size).coerceAtLeast(0)
             val lines = buildList {
-                priorities.take(3).forEach { add("★ ${it.title}") }
-                todayTasks.filterNot { it.isTopPriority }.take(6 - priorities.take(3).size).forEach { task ->
+                topPriorities.forEach { add("★ ${it.title}") }
+                todayTasks.filterNot { it.isTopPriority }.take(remainingSlots).forEach { task ->
                     val time = task.scheduledAtMillis?.let {
                         DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it))
                     }
                     add("• ${time?.let { "$it  " } ?: ""}${task.title}")
                 }
             }
-            val zone = ZoneId.systemDefault()
-            val today = LocalDate.now(zone)
-            val todayTasks = tasks.filter { task ->
-                task.scheduledAtMillis?.let {
-                    Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today
-                } == true && !task.isCompleted
-            }.sortedBy { it.scheduledAtMillis }
-            val priorities = tasks.filter { it.isTopPriority && !it.isCompleted }
-            val lines = buildList {
-                priorities.take(3).forEach { add("★ ${it.title}") }
-                todayTasks.filterNot { it.isTopPriority }.take(6 - priorities.take(3).size).forEach { task ->
-                    val time = task.scheduledAtMillis?.let {
-                        DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it))
-                    }
-                    add("• ${time?.let { "$it  " } ?: ""}${task.title}")
-                }
-            }
+
             val openPending = PendingIntent.getActivity(
                 context, widgetId, Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -127,10 +113,18 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 Intent(context, MyDayWidgetProvider::class.java).setAction(ACTION_REFRESH),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+
+            val viewsBySize = linkedMapOf<SizeF, RemoteViews>()
             viewSpecs.forEach { (size, layoutId) ->
                 val views = RemoteViews(context.packageName, layoutId)
-                views.setTextViewText(R.id.widget_date, SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date()))
-                views.setTextViewText(R.id.widget_priorities, if (priorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES")
+                views.setTextViewText(
+                    R.id.widget_date,
+                    SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+                )
+                views.setTextViewText(
+                    R.id.widget_priorities,
+                    if (topPriorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES"
+                )
                 views.setTextViewText(
                     R.id.widget_tasks,
                     lines.take(6).joinToString("\n").ifBlank { "Nothing planned yet.\nTap to add a task." }
@@ -141,6 +135,7 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_refresh, refreshPending)
                 viewsBySize[size] = views
             }
+
             val responsiveViews = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 RemoteViews(viewsBySize)
             } else {
