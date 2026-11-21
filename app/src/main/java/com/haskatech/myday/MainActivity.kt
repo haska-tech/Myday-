@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,9 +43,13 @@ class MainActivity : ComponentActivity() {
 private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     var tab by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showTopThreeLimit by remember { mutableStateOf(false) }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
     val labels = listOf("My Day", "Tasks", "Calendar", "Insights", "Settings")
     val icons = listOf(Icons.Default.Today, Icons.Default.CheckCircle, Icons.Default.CalendarMonth, Icons.Default.Insights, Icons.Default.Settings)
+    val toggleTop: (TaskEntity, Boolean) -> Unit = { task, selected ->
+        tasksViewModel.setTopPriority(task, selected) { showTopThreeLimit = true }
+    }
 
     Scaffold(
         containerColor = Paper,
@@ -68,8 +73,8 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         }
     ) { padding ->
         when (tab) {
-            0 -> TodayScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, Modifier.padding(padding))
-            1 -> TasksScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) },
+            0 -> TodayScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop, Modifier.padding(padding))
+            1 -> TasksScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, Modifier.padding(padding))
             2 -> PlaceholderScreen("Calendar", "Calendar planning is the next feature to implement.", Modifier.padding(padding))
             3 -> InsightsScreen(tasks, Modifier.padding(padding))
@@ -86,15 +91,25 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
             }
         )
     }
+    if (showTopThreeLimit) {
+        AlertDialog(
+            onDismissRequest = { showTopThreeLimit = false },
+            title = { Text("Daily top three is full") },
+            text = { Text("You can select up to three active top-priority tasks. Remove one before adding another.") },
+            confirmButton = { TextButton(onClick = { showTopThreeLimit = false }) { Text("Got it") } }
+        )
+    }
 }
 
 @Composable
 private fun TodayScreen(
     tasks: List<TaskEntity>,
     onToggle: (TaskEntity, Boolean) -> Unit,
+    onTopPriority: (TaskEntity, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val completed = tasks.count { it.isCompleted }
+    val topTasks = tasks.filter { it.isTopPriority && !it.isCompleted }
     LazyColumn(modifier.fillMaxSize().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Spacer(Modifier.height(8.dp))
@@ -105,10 +120,14 @@ private fun TodayScreen(
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Navy), shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.padding(18.dp)) {
-                    Text("TODAY'S TOP 3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("TODAY'S TOP 3 · ${topTasks.size}/3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("Choose the three things that matter most.", color = Color.White, fontSize = 17.sp)
-                    Text("Keep your most important work in focus.", color = Color.LightGray, fontSize = 13.sp)
+                    if (topTasks.isEmpty()) {
+                        Text("Choose up to three tasks that matter most.", color = Color.White, fontSize = 16.sp)
+                    } else {
+                        topTasks.forEach { Text("• ${it.title}", color = Color.White, fontSize = 15.sp) }
+                    }
+                    Text("Tap TOP 3 beside a task to add it here.", color = Color.LightGray, fontSize = 12.sp)
                 }
             }
         }
@@ -121,7 +140,7 @@ private fun TodayScreen(
         if (tasks.isEmpty()) {
             item { Text("No tasks yet. Tap + to add your first task.", color = Muted) }
         } else {
-            items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle) }
+            items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority) }
         }
         item { Spacer(Modifier.height(80.dp)) }
     }
@@ -131,6 +150,7 @@ private fun TodayScreen(
 private fun TasksScreen(
     tasks: List<TaskEntity>,
     onToggle: (TaskEntity, Boolean) -> Unit,
+    onTopPriority: (TaskEntity, Boolean) -> Unit,
     onDelete: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -142,9 +162,7 @@ private fun TasksScreen(
             Text("Nothing here yet. Tap + to create a task.", color = Muted)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tasks, key = { it.id }) { task ->
-                    TaskRow(task, onToggle, onDelete)
-                }
+                items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, onDelete) }
             }
         }
     }
@@ -154,20 +172,22 @@ private fun TasksScreen(
 private fun TaskRow(
     task: TaskEntity,
     onToggle: (TaskEntity, Boolean) -> Unit,
+    onTopPriority: (TaskEntity, Boolean) -> Unit,
     onDelete: ((TaskEntity) -> Unit)? = null
 ) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle(task, it) },
                 colors = CheckboxDefaults.colors(checkedColor = Navy))
-            Column(Modifier.weight(1f).padding(start = 6.dp)) {
+            Column(Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
-                    textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                 Text(task.priority, color = Muted, fontSize = 12.sp)
+            }
+            if (!task.isCompleted) {
+                TextButton(onClick = { onTopPriority(task, !task.isTopPriority) }) {
+                    Text(if (task.isTopPriority) "TOP 3 ✓" else "TOP 3", fontSize = 10.sp)
+                }
             }
             if (onDelete != null) {
                 IconButton(onClick = { onDelete(task) }) {
@@ -197,9 +217,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = { onAdd(title, priority) }, enabled = title.isNotBlank()) { Text("Save") }
-        },
+        confirmButton = { TextButton(onClick = { onAdd(title, priority) }, enabled = title.isNotBlank()) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
@@ -216,8 +234,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
                 Text("Task completion", color = Navy, fontWeight = FontWeight.Bold)
                 Text("$done of ${tasks.size} tasks completed", color = Muted)
                 Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth(),
-                    color = Lime, trackColor = Paper)
+                LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth(), color = Lime, trackColor = Paper)
                 Text("$percent%", color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
