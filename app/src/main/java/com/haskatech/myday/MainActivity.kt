@@ -1,6 +1,16 @@
 package com.haskatech.myday
 
 import android.os.Bundle
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import java.text.DateFormat
+import java.util.Calendar
+import java.util.Date
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -44,6 +54,13 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     var tab by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showTopThreeLimit by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
     val labels = listOf("My Day", "Tasks", "Calendar", "Insights", "Settings")
     val icons = listOf(Icons.Default.Today, Icons.Default.CheckCircle, Icons.Default.CalendarMonth, Icons.Default.Insights, Icons.Default.Settings)
@@ -76,7 +93,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
             0 -> TodayScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop, Modifier.padding(padding))
             1 -> TasksScreen(tasks, { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, Modifier.padding(padding))
-            2 -> PlaceholderScreen("Calendar", "Calendar planning is the next feature to implement.", Modifier.padding(padding))
+            2 -> CalendarScreen(tasks, Modifier.padding(padding))
             3 -> InsightsScreen(tasks, Modifier.padding(padding))
             else -> PlaceholderScreen("Settings", "Personalise your planning experience.", Modifier.padding(padding))
         }
@@ -85,8 +102,8 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     if (showAddDialog) {
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
-            onAdd = { title, priority ->
-                tasksViewModel.addTask(title, priority)
+            onAdd = { title, priority, scheduledAt, reminderAt ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt)
                 showAddDialog = false
             }
         )
@@ -198,10 +215,17 @@ private fun TaskRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, Long?) -> Unit) {
     var title by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("Normal") }
+    var scheduledAt by remember { mutableStateOf<Long?>(null) }
+    var reminderEnabled by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val dateLabel = scheduledAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) }
+        ?: "Not scheduled"
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add a task", color = Navy) },
@@ -215,11 +239,69 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit
                         FilterChip(selected = priority == option, onClick = { priority = option }, label = { Text(option) })
                     }
                 }
+                OutlinedButton(onClick = {
+                    val now = Calendar.getInstance()
+                    DatePickerDialog(context, { _, year, month, day ->
+                        val chosen = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, year); set(Calendar.MONTH, month); set(Calendar.DAY_OF_MONTH, day)
+                        }
+                        TimePickerDialog(context, { _, hour, minute ->
+                            chosen.set(Calendar.HOUR_OF_DAY, hour)
+                            chosen.set(Calendar.MINUTE, minute)
+                            chosen.set(Calendar.SECOND, 0)
+                            chosen.set(Calendar.MILLISECOND, 0)
+                            scheduledAt = chosen.timeInMillis
+                        }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false).show()
+                    }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Schedule, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Schedule: $dateLabel")
+                }
+                if (scheduledAt != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
+                        Text("Remind me at the scheduled time", color = Navy, fontSize = 13.sp)
+                    }
+                    TextButton(onClick = { scheduledAt = null }) { Text("Clear schedule") }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { onAdd(title, priority) }, enabled = title.isNotBlank()) { Text("Save") } },
+        confirmButton = {
+            TextButton(onClick = {
+                val reminder = if (reminderEnabled) scheduledAt else null
+                onAdd(title, priority, scheduledAt, reminder)
+            }, enabled = title.isNotBlank()) { Text("Save") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
+}
+
+@Composable
+private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
+    val scheduled = tasks.filter { it.scheduledAtMillis != null && !it.isCompleted }
+        .sortedBy { it.scheduledAtMillis }
+    Column(modifier.fillMaxSize().padding(18.dp)) {
+        Text("Calendar", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("Your scheduled tasks", color = Muted)
+        Spacer(Modifier.height(16.dp))
+        if (scheduled.isEmpty()) {
+            Text("No scheduled tasks yet. Add a task and choose a date and time.", color = Muted)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(scheduled, key = { it.id }) { task ->
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
+                                color = Muted, fontSize = 12.sp)
+                            Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold)
+                            if (task.reminderAtMillis != null) Text("Reminder set", color = Muted, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
