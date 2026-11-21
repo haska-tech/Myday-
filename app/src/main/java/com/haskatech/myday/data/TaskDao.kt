@@ -17,7 +17,7 @@ interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: TaskEntity)
 
-    @Query("UPDATE tasks SET isCompleted = :completed WHERE id = :taskId")
+    @Query("UPDATE tasks SET isCompleted = :completed, isTopPriority = CASE WHEN :completed = 1 THEN 0 ELSE isTopPriority END WHERE id = :taskId")
     suspend fun setCompleted(taskId: Long, completed: Boolean)
 
     @Query("UPDATE tasks SET isTopPriority = :isTop WHERE id = :taskId")
