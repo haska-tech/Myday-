@@ -288,32 +288,121 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
 @Composable
 private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
-    val scheduled = tasks.filter { it.scheduledAtMillis != null && !it.isCompleted }
-        .sortedBy { it.scheduledAtMillis }
-    Column(modifier.fillMaxSize().padding(18.dp)) {
+    val zone = remember { java.time.ZoneId.systemDefault() }
+    var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
+    var view by remember { mutableStateOf("Week") }
+    val scheduled = tasks.filter { it.scheduledAtMillis != null }
+    val dateFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault()) }
+    val monthFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
+    val weekStart = selectedDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+    val monthStart = selectedDate.withDayOfMonth(1)
+    val gridStart = monthStart.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+    val visibleDates = when (view) {
+        "Day" -> listOf(selectedDate)
+        "Week" -> (0L..6L).map { weekStart.plusDays(it) }
+        else -> (0L..41L).map { gridStart.plusDays(it) }
+    }
+    fun tasksFor(date: java.time.LocalDate): List<TaskEntity> = scheduled.filter { task ->
+        java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalDate() == date
+    }.sortedBy { it.scheduledAtMillis }
+
+    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text("Calendar", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("Your scheduled tasks", color = Muted)
-        Spacer(Modifier.height(16.dp))
-        if (scheduled.isEmpty()) {
-            Text("No scheduled tasks yet. Add a task and choose a date and time.", color = Muted)
-        } else {
-            val grouped = scheduled.groupBy {
-                SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date(it.scheduledAtMillis!!))
-            }.toList()
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(grouped, key = { it.first }) { (day, dayTasks) ->
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Text(day, color = Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        dayTasks.forEach { task ->
-                            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                                Column(Modifier.padding(14.dp)) {
-                                    Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
-                                        color = Muted, fontSize = 12.sp)
-                                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold)
-                                    if (task.reminderAtMillis != null) Text("Reminder set", color = Muted, fontSize = 11.sp)
-                                    if (task.recurrenceRule != "None") Text("Repeats ${task.recurrenceRule.lowercase()}", color = Muted, fontSize = 11.sp)
-                                }
+        Text("Plan by day, week or month.", color = Muted)
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Day", "Week", "Month").forEach { option ->
+                FilterChip(selected = view == option, onClick = { view = option }, label = { Text(option) })
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { selectedDate = java.time.LocalDate.now(zone) }) { Text("Today") }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            IconButton(onClick = {
+                selectedDate = when (view) {
+                    "Day" -> selectedDate.minusDays(1)
+                    "Week" -> selectedDate.minusWeeks(1)
+                    else -> selectedDate.minusMonths(1)
+                }
+            }) { Icon(Icons.Default.ChevronLeft, contentDescription = "Previous") }
+            Text(
+                when (view) {
+                    "Day" -> selectedDate.format(dateFormatter)
+                    "Week" -> "${weekStart.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))} – ${weekStart.plusDays(6).format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}"
+                    else -> selectedDate.format(monthFormatter)
+                },
+                color = Navy, fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = {
+                selectedDate = when (view) {
+                    "Day" -> selectedDate.plusDays(1)
+                    "Week" -> selectedDate.plusWeeks(1)
+                    else -> selectedDate.plusMonths(1)
+                }
+            }) { Icon(Icons.Default.ChevronRight, contentDescription = "Next") }
+        }
+        if (view == "Month") {
+            Row(Modifier.fillMaxWidth()) {
+                listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Text(day, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            visibleDates.chunked(7).forEach { week ->
+                Row(Modifier.fillMaxWidth()) {
+                    week.forEach { date ->
+                        val count = tasksFor(date).size
+                        val inMonth = date.month == selectedDate.month
+                        Surface(
+                            onClick = { selectedDate = date },
+                            modifier = Modifier.weight(1f).padding(2.dp).height(54.dp),
+                            color = if (date == selectedDate) Lime else Color.White,
+                            shape = RoundedCornerShape(9.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center) {
+                                Text(date.dayOfMonth.toString(), color = if (inMonth) Navy else Muted,
+                                    fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal)
+                                if (count > 0) Text(count.toString(), color = Navy, fontSize = 10.sp)
                             }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("Selected day · ${selectedDate.format(dateFormatter)}", color = Navy, fontWeight = FontWeight.Bold)
+        }
+        val datesToShow = if (view == "Month") listOf(selectedDate) else visibleDates
+        val entries = datesToShow.flatMap { date -> tasksFor(date).map { date to it } }
+        if (entries.isEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("No scheduled tasks for this ${view.lowercase()}.", color = Muted)
+            Text("Tap + to add a task and give it a date and time.", color = Muted, fontSize = 12.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                items(entries, key = { "${it.second.id}-${it.first}" }) { (date, task) ->
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(14.dp)) {
+                        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.width(76.dp)) {
+                                Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
+                                    color = Muted, fontSize = 11.sp)
+                                Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
+                                    color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
+                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
+                                val details = listOfNotNull(
+                                    if (task.reminderAtMillis != null) "Reminder" else null,
+                                    if (task.recurrenceRule != "None") "Repeats ${task.recurrenceRule.lowercase()}" else null,
+                                    if (task.isCompleted) "Completed" else null
+                                )
+                                if (details.isNotEmpty()) Text(details.joinToString(" · "), color = Muted, fontSize = 11.sp)
+                            }
+                            if (task.priority == "High") Text("HIGH", color = Navy, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
