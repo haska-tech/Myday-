@@ -20,9 +20,9 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         emptyList()
     )
 
-    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null) {
+    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None") {
         viewModelScope.launch {
-            val taskId = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis)
+            val taskId = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule)
             if (taskId != null && reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
                 ReminderScheduler.schedule(getApplication(), taskId, title.trim(), reminderAtMillis)
             }
@@ -30,7 +30,12 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCompleted(task: TaskEntity, completed: Boolean) {
-        viewModelScope.launch { repository.setCompleted(task.id, completed) }
+        viewModelScope.launch {
+            val nextTask = repository.setCompleted(task, completed)
+            if (nextTask?.reminderAtMillis != null && nextTask.reminderAtMillis > System.currentTimeMillis()) {
+                ReminderScheduler.schedule(getApplication(), nextTask.id, nextTask.title, nextTask.reminderAtMillis)
+            }
+        }
     }
 
     fun setTopPriority(task: TaskEntity, isTop: Boolean, onLimitReached: () -> Unit) {
