@@ -1,6 +1,10 @@
 package com.haskatech.myday
 
 import android.os.Bundle
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import android.content.Intent
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -305,8 +309,46 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
         title = { Text("Add a task", color = Navy) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it },
-                    label = { Text("What do you need to do?") }, singleLine = true)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("What do you need to do?") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    val voiceCaptureLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        if (result.resultCode == Activity.RESULT_OK) {
+                            val spokenText = result.data
+                                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                                ?.firstOrNull()
+                            if (!spokenText.isNullOrBlank()) {
+                                title = VoiceCaptureRules.appendRecognizedText(title, spokenText)
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = {
+                            val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-UG")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Say the task you want to add")
+                            }
+                            try {
+                                voiceCaptureLauncher.launch(speechIntent)
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, "Speech recognition is not available on this device.", Toast.LENGTH_LONG).show()
+                            } catch (_: SecurityException) {
+                                Toast.makeText(context, "Speech recognition permission was not granted.", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Default.Mic, contentDescription = "Add task by voice", tint = Navy)
+                    }
+                }
                 Text("Priority", color = Navy, fontWeight = FontWeight.Medium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("High", "Normal", "Low").forEach { option ->
