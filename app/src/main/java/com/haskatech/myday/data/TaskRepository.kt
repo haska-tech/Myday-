@@ -3,13 +3,14 @@ package com.haskatech.myday.data
 class TaskRepository(private val taskDao: TaskDao) {
     val tasks = taskDao.observeTasks()
 
-    suspend fun addTask(title: String, priority: String = "Normal") {
+    suspend fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null) {
         val cleanTitle = title.trim()
-        if (cleanTitle.isNotEmpty()) taskDao.insert(TaskEntity(title = cleanTitle, priority = priority))
+        if (cleanTitle.isNotEmpty()) taskDao.insert(
+            TaskEntity(title = cleanTitle, priority = priority, scheduledAtMillis = scheduledAtMillis, reminderAtMillis = reminderAtMillis)
+        )
     }
 
-    suspend fun setCompleted(id: Long, completed: Boolean) =
-        taskDao.setCompleted(id, completed)
+    suspend fun setCompleted(id: Long, completed: Boolean) = taskDao.setCompleted(id, completed)
 
     suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean {
         if (isTop && taskDao.countActiveTopPriorities() >= 3) return false
