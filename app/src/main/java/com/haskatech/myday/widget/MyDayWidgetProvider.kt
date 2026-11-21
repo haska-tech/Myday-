@@ -43,6 +43,10 @@ class MyDayWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "com.haskatech.myday.widget.REFRESH"
 
+        fun requestRefresh(context: Context) {
+            context.sendBroadcast(Intent(context, MyDayWidgetProvider::class.java).setAction(ACTION_REFRESH))
+        }
+
         private fun render(context: Context, manager: AppWidgetManager, widgetId: Int, tasks: List<TaskEntity>) {
             val views = RemoteViews(context.packageName, R.layout.myday_widget)
             val zone = ZoneId.systemDefault()
