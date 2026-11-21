@@ -24,38 +24,24 @@ import java.util.Date
 import java.util.Locale
 
 class MyDayWidgetProvider : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-        refreshWidgets(context, manager, appWidgetIds)
-    }
-
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == ACTION_REFRESH) {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(ComponentName(context, MyDayWidgetProvider::class.java))
-            refreshWidgets(context, manager, ids)
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val manager = AppWidgetManager.getInstance(context)
+                val ids = manager.getAppWidgetIds(ComponentName(context, MyDayWidgetProvider::class.java))
+                if (ids.isNotEmpty()) {
+                    val tasks = MyDayDatabase.getDatabase(context).taskDao().observeTasks().first()
+                    ids.forEach { render(context, manager, it, tasks) }
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
     companion object {
         const val ACTION_REFRESH = "com.haskatech.myday.widget.REFRESH"
-
-        private fun refreshWidgets(context: Context, manager: AppWidgetManager, ids: IntArray) {
-            if (ids.isEmpty()) return
-            val pendingResult = goAsync(context)
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val tasks = MyDayDatabase.getDatabase(context).taskDao().observeTasks().first()
-                    ids.forEach { id -> render(context, manager, id, tasks) }
-                } finally {
-                    pendingResult.finish()
-                }
-            }
-        }
-
-        private fun goAsync(context: Context): PendingResultHolder {
-            return PendingResultHolder(context)
-        }
 
         private fun render(context: Context, manager: AppWidgetManager, widgetId: Int, tasks: List<TaskEntity>) {
             val views = RemoteViews(context.packageName, R.layout.myday_widget)
@@ -83,29 +69,20 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 lines.take(6).joinToString("\n").ifBlank { "Nothing planned yet.\nTap to add a task." }
             )
 
-            val openIntent = Intent(context, MainActivity::class.java)
             val openPending = PendingIntent.getActivity(
-                context, widgetId, openIntent,
+                context, widgetId, Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_tasks, openPending)
             views.setOnClickPendingIntent(R.id.widget_title, openPending)
-            val refreshIntent = Intent(context, MyDayWidgetProvider::class.java).setAction(ACTION_REFRESH)
+            views.setOnClickPendingIntent(R.id.widget_footer, openPending)
             val refreshPending = PendingIntent.getBroadcast(
-                context, widgetId, refreshIntent,
+                context, widgetId,
+                Intent(context, MyDayWidgetProvider::class.java).setAction(ACTION_REFRESH),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_refresh, refreshPending)
-            views.setOnClickPendingIntent(R.id.widget_footer, openPending)
             manager.updateAppWidget(widgetId, views)
         }
     }
-}
-
-/** Keeps the widget broadcast alive while its Room query completes. */
-private class PendingResultHolder(context: Context) {
-    private val result = object : AppWidgetProvider() {}
-    private val pending = result.goAsync()
-
-    fun finish() = pending.finish()
 }
