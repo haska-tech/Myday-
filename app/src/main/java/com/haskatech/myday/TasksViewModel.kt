@@ -7,6 +7,7 @@ import com.haskatech.myday.data.MyDayDatabase
 import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TaskRepository
 import com.haskatech.myday.reminders.ReminderScheduler
+import com.haskatech.myday.widget.MyDayWidgetProvider
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,21 +27,25 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             if (taskId != null && reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
                 ReminderScheduler.schedule(getApplication(), taskId, title.trim(), reminderAtMillis)
             }
+            MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 
     fun setCompleted(task: TaskEntity, completed: Boolean) {
         viewModelScope.launch {
             val nextTask = repository.setCompleted(task, completed)
+            if (completed) ReminderScheduler.cancel(getApplication(), task.id)
             if (nextTask?.reminderAtMillis != null && nextTask.reminderAtMillis > System.currentTimeMillis()) {
                 ReminderScheduler.schedule(getApplication(), nextTask.id, nextTask.title, nextTask.reminderAtMillis)
             }
+            MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 
     fun setTopPriority(task: TaskEntity, isTop: Boolean, onLimitReached: () -> Unit) {
         viewModelScope.launch {
             if (!repository.setTopPriority(task.id, isTop)) onLimitReached()
+            MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 
@@ -48,6 +53,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             ReminderScheduler.cancel(getApplication(), task.id)
             repository.deleteTask(task.id)
+            MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 }
