@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="14dp"
-    android:background="#FFFFFF">
+    android:background="@drawable/myday_widget_background">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,7 +15,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="MyDay"
+            android:text="MyDay" android:fontFamily="sans" android:letterSpacing="0.01"
             android:textColor="#14233B"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:padding="6dp"
             android:text="Refresh"
-            android:textColor="#4C8C24"
+            android:textColor="#638C22"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -36,7 +36,7 @@
         android:paddingTop="2dp"
         android:paddingBottom="8dp"
         android:text="Today's plan"
-        android:textColor="#687386"
+        android:textColor="#748094"
         android:textSize="12sp" />
     <TextView
         android:id="@+id/widget_priorities"
@@ -63,7 +63,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="6dp"
-        android:text="Tap to open MyDay"
+        android:text="OPEN MYDAY  ·  PLAN WITH PURPOSE"
         android:textColor="#687386"
         android:textSize="10sp" />
 </LinearLayout>

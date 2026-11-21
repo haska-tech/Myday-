@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="16dp" android:background="#FFFFFF">
+    android:orientation="vertical" android:padding="16dp" android:background="@drawable/myday_widget_background">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:gravity="center_vertical" android:orientation="horizontal">
         <TextView android:id="@+id/widget_title" android:layout_width="0dp"
-            android:layout_height="wrap_content" android:layout_weight="1" android:text="MyDay"
+            android:layout_height="wrap_content" android:layout_weight="1" android:text="MyDay" android:fontFamily="sans" android:letterSpacing="0.01"
             android:textColor="#14233B" android:textSize="20sp" android:textStyle="bold" />
         <TextView android:id="@+id/widget_refresh" android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:padding="7dp" android:text="↻ Refresh"
-            android:textColor="#4C8C24" android:textSize="12sp" android:textStyle="bold" />
+            android:textColor="#638C22" android:textSize="12sp" android:textStyle="bold" />
     </LinearLayout>
     <TextView android:id="@+id/widget_date" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingBottom="9dp" android:text="Today"
-        android:textColor="#687386" android:textSize="13sp" />
+        android:textColor="#748094" android:textSize="13sp" />
     <TextView android:id="@+id/widget_priorities" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingBottom="6dp" android:text="TOP PRIORITIES"
         android:textColor="#4C8C24" android:textSize="12sp" android:textStyle="bold" />
@@ -22,6 +22,6 @@
         android:maxLines="8" android:ellipsize="end" android:text="Your tasks appear here."
         android:textColor="#14233B" android:textSize="14sp" />
     <TextView android:id="@+id/widget_footer" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:paddingTop="8dp" android:text="Tap to open MyDay"
+        android:layout_height="wrap_content" android:paddingTop="8dp" android:text="OPEN MYDAY  ·  PLAN WITH PURPOSE"
         android:textColor="#687386" android:textSize="10sp" />
 </LinearLayout>
