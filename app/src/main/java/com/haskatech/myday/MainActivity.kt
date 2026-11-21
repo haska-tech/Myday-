@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -101,7 +102,7 @@ private fun TodayScreen(tasks: List<PlannerTask>, modifier: Modifier = Modifier)
             }
         }
         item { Text("Today's timetable", color = Navy, fontSize = 19.sp, fontWeight = FontWeight.Bold) }
-        items(tasks.size) { index -> TaskCard(tasks[index]) }
+        items(tasks) { task -> TaskCard(task) }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
                 Column(Modifier.padding(16.dp)) {
