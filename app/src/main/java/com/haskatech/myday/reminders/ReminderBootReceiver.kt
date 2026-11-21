@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.haskatech.myday.data.MyDayDatabase
+import com.haskatech.myday.focus.PomodoroTimerManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -18,6 +19,7 @@ class ReminderBootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                PomodoroTimerManager.restore(context)
                 val tasks = MyDayDatabase.getDatabase(context).taskDao().observeTasks().first()
                 val now = System.currentTimeMillis()
                 tasks.asSequence()

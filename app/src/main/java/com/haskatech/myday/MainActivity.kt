@@ -1,6 +1,7 @@
 package com.haskatech.myday
 
 import android.os.Bundle
+import android.content.Intent
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.Manifest
@@ -127,6 +128,7 @@ private fun TodayScreen(
     onTopPriority: (TaskEntity, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val completed = tasks.count { it.isCompleted }
     val topTasks = tasks.filter { it.isTopPriority && !it.isCompleted }
     LazyColumn(modifier.fillMaxSize().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -135,6 +137,21 @@ private fun TodayScreen(
             Text("YOUR DAY", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Text("Make today count.", color = Navy, fontSize = 27.sp, fontWeight = FontWeight.Bold)
             Text("Your plan, at a glance.", color = Muted)
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("FOCUS TIMER", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Make time for what matters.", color = Navy, fontWeight = FontWeight.SemiBold)
+                        Text("Start a focused work session.", color = Muted, fontSize = 12.sp)
+                    }
+                    Button(onClick = { context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java)) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
+                        Text("Focus")
+                    }
+                }
+            }
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Navy), shape = RoundedCornerShape(20.dp)) {
