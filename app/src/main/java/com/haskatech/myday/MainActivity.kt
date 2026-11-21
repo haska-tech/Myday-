@@ -46,14 +46,29 @@ import kotlinx.coroutines.delay
 
 private val Navy = Color(0xFF14243A)
 private val Lime = Color(0xFFB7E445)
-private val Paper = Color(0xFFF6F8F4)
-private val Muted = Color(0xFF667085)
+private val Paper = Color(0xFFF4F6F9)
+private val Muted = Color(0xFF748094)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Navy, secondary = Lime, background = Paper)) {
+            MaterialTheme(
+                colorScheme = lightColorScheme(
+                    primary = Navy,
+                    onPrimary = Color.White,
+                    secondary = Lime,
+                    onSecondary = Navy,
+                    background = Paper,
+                    onBackground = Navy,
+                    surface = Color.White,
+                    onSurface = Navy,
+                    surfaceVariant = Color(0xFFEDF1F5),
+                    onSurfaceVariant = Muted,
+                    outline = Color(0xFFE3E8EF),
+                    primaryContainer = Color(0xFFEAF2D4)
+                )
+            ) {
                 MyDayApp()
             }
         }
@@ -90,22 +105,56 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
 
     Scaffold(
         containerColor = Paper,
-        topBar = { TopAppBar(title = { Column {
-            Text("MyDay", color = Navy, fontWeight = FontWeight.Bold)
-            Text("Plan with purpose.", color = Muted, fontSize = 12.sp)
-        } }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text("MyDay", color = Navy, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, letterSpacing = (-0.4).sp)
+                        Text("PLAN WITH PURPOSE", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                    }
+                },
+                navigationIcon = {
+                    Surface(
+                        modifier = Modifier.padding(start = 16.dp, end = 10.dp).size(36.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Lime
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "MyDay", tint = Navy, modifier = Modifier.size(19.dp))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Paper)
+            )
+        },
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = Color.White, tonalElevation = 6.dp) {
                 labels.forEachIndexed { index, label ->
-                    NavigationBarItem(selected = tab == index, onClick = { tab = index },
-                        icon = { Icon(icons[index], contentDescription = label) },
-                        label = { Text(label, fontSize = 10.sp) })
+                    NavigationBarItem(
+                        selected = tab == index,
+                        onClick = { tab = index },
+                        icon = { Icon(icons[index], contentDescription = label, modifier = Modifier.size(21.dp)) },
+                        label = { Text(label, fontSize = 10.sp, fontWeight = if (tab == index) FontWeight.Bold else FontWeight.Medium) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Navy,
+                            selectedTextColor = Navy,
+                            indicatorColor = Lime.copy(alpha = 0.38f),
+                            unselectedIconColor = Muted,
+                            unselectedTextColor = Muted
+                        )
+                    )
                 }
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }, containerColor = Lime, contentColor = Navy) {
-                Icon(Icons.Default.Add, contentDescription = "Add task")
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = Lime,
+                contentColor = Navy,
+                shape = RoundedCornerShape(18.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 5.dp, pressedElevation = 2.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add task", modifier = Modifier.size(25.dp))
             }
         }
     ) { padding ->
@@ -160,12 +209,22 @@ private fun TodayScreen(
     LazyColumn(modifier.fillMaxSize().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text("YOUR DAY", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text("Make today count.", color = Navy, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-            Text("Your plan, at a glance.", color = Muted)
+            Text(
+                java.time.LocalDate.now(java.time.ZoneId.of("Africa/Kampala"))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault()))
+                    .uppercase(Locale.getDefault()),
+                color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
+            )
+            Text("Make today count.", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
+            Text("A little progress, every day.", color = Muted, fontSize = 14.sp)
+
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("FOCUS TIMER", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -180,7 +239,11 @@ private fun TodayScreen(
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = Navy), shape = RoundedCornerShape(20.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Navy),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
                 Column(Modifier.padding(18.dp)) {
                     Text("TODAY'S TOP 3 · ${topTasks.size}/3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
@@ -221,9 +284,10 @@ private fun TasksScreen(
     onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxSize().padding(18.dp)) {
-        Text("Tasks", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("Your task list is saved on this device.", color = Muted)
+    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
+        Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Tasks", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("Everything you need to move forward.", color = Muted, fontSize = 14.sp)
         Spacer(Modifier.height(16.dp))
         if (tasks.isEmpty()) {
             Text("Nothing here yet. Tap + to create a task.", color = Muted)
@@ -247,7 +311,12 @@ private fun TaskRow(
     onPauseTracking: (TaskEntity) -> Unit = {},
     onStopTracking: (TaskEntity) -> Unit = {}
 ) {
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle(task, it) },
                 colors = CheckboxDefaults.colors(checkedColor = Navy))
@@ -441,9 +510,10 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalDate() == date
     }.sortedBy { it.scheduledAtMillis }
 
-    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text("Calendar", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("Plan by day, week or month.", color = Muted)
+    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 18.dp)) {
+        Text("YOUR SCHEDULE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Calendar", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("Make space for what matters.", color = Muted, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Day", "Week", "Month").forEach { option ->
@@ -559,10 +629,11 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     val dailyTotals = TimeTrackingRules.durationByDate(intervals, reportZone)
     val todayTracked = dailyTotals[today] ?: 0L
     val weekTracked = (0L..6L).sumOf { dailyTotals[weekStart.plusDays(it)] ?: 0L }
-    Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Insights", color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("A simple view of today's progress.", color = Muted)
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Insights", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("See where your time and effort go.", color = Muted, fontSize = 14.sp)
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(Modifier.padding(18.dp)) {
                 Text("Time tracked", color = Navy, fontWeight = FontWeight.Bold)
                 Text(TimeTrackingRules.formatDuration(trackedTotal), color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -595,8 +666,8 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
 @Composable
 private fun PlaceholderScreen(title: String, description: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(20.dp)) {
-        Text(title, color = Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text(title.uppercase(Locale.getDefault()), color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Spacer(Modifier.height(8.dp))
-        Text(description, color = Muted)
+        Text(description, color = Navy, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }

@@ -39,8 +39,8 @@ import kotlinx.coroutines.delay
 
 private val FocusNavy = Color(0xFF14243A)
 private val FocusLime = Color(0xFFB7E445)
-private val FocusPaper = Color(0xFFF6F8F4)
-private val FocusMuted = Color(0xFF667085)
+private val FocusPaper = Color(0xFFF4F6F9)
+private val FocusMuted = Color(0xFF748094)
 
 class PomodoroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,14 +90,16 @@ private fun PomodoroScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("‹  MyDay", color = FocusNavy, fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                Text("MYDAY", color = FocusNavy, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, letterSpacing = 1.sp,
                     modifier = Modifier.weight(1f))
                 Text("POMODORO", color = FocusMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
-            Text("Stay focused.", color = FocusNavy, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text("Stay focused.", color = FocusNavy, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
+            Text("One thing at a time. Give it your best.", color = FocusMuted, fontSize = 13.sp)
             Text(phaseLabel, color = FocusMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(28.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(30.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -123,7 +125,8 @@ private fun PomodoroScreen() {
                     }
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(22.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
