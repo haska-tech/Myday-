@@ -45,6 +45,22 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (scheduledAtMillis != null && scheduledAtMillis <= now && scheduledAtMillis != task.scheduledAtMillis) return@launch
+            if (reminderAtMillis != null && (scheduledAtMillis == null ||
+                (reminderAtMillis <= now && reminderAtMillis != task.reminderAtMillis) || reminderAtMillis > scheduledAtMillis)) return@launch
+            ReminderScheduler.cancel(getApplication(), task.id)
+            if (repository.updateTask(task.id, title, priority, scheduledAtMillis, reminderAtMillis)) {
+                reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
+                    ReminderScheduler.schedule(getApplication(), task.id, title.trim(), it)
+                }
+                MyDayWidgetProvider.requestRefresh(getApplication())
+            }
+        }
+    }
+
     fun startTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.start(task.id) } }
     fun pauseTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.pause(task.id) } }
     fun stopTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.stop(task.id) } }
