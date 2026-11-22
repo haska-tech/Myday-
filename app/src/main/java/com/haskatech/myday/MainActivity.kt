@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.PlannerTime
 import com.haskatech.myday.data.TimeTrackingSessionEntity
 import com.haskatech.myday.data.TimeTrackingEntryEntity
 import com.haskatech.myday.focus.TimeTrackingRules
@@ -214,7 +215,7 @@ private fun TodayScreen(
         item {
             Spacer(Modifier.height(8.dp))
             Text(
-                java.time.LocalDate.now(java.time.ZoneId.systemDefault())
+                java.time.LocalDate.now(PlannerTime.zoneId())
                     .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault()))
                     .uppercase(Locale.getDefault()),
                 color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
@@ -542,7 +543,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
 @Composable
 private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
-    val zone = java.time.ZoneId.systemDefault()
+    val zone = PlannerTime.zoneId()
     var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
     var view by remember { mutableStateOf("Week") }
     val scheduled = tasks.filter { it.scheduledAtMillis != null }
@@ -557,7 +558,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         else -> (0L..41L).map { gridStart.plusDays(it) }
     }
     fun tasksFor(date: java.time.LocalDate): List<TaskEntity> = scheduled.filter { task ->
-        java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalDate() == date
+        PlannerTime.localDateAt(task.scheduledAtMillis!!) == date
     }.sortedBy { it.scheduledAtMillis }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 18.dp)) {
@@ -821,7 +822,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     val done = tasks.count { it.isCompleted }
     val percent = if (tasks.isEmpty()) 0 else done * 100 / tasks.size
     val trackedTotal = tasks.sumOf { it.timeSpentMillis } + if (tracking?.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L
-    val reportZone = remember { java.time.ZoneId.systemDefault() }
+    val reportZone = PlannerTime.zoneId()
     val today = java.time.LocalDate.now(reportZone)
     val weekStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
     val intervals = entries.map { com.haskatech.myday.focus.TimeInterval(it.startedAtMillis, it.endedAtMillis) } +
