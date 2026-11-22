@@ -214,7 +214,7 @@ private fun TodayScreen(
         item {
             Spacer(Modifier.height(8.dp))
             Text(
-                java.time.LocalDate.now(java.time.ZoneId.of("Africa/Kampala"))
+                java.time.LocalDate.now(java.time.ZoneId.systemDefault())
                     .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault()))
                     .uppercase(Locale.getDefault()),
                 color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
@@ -542,7 +542,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
 @Composable
 private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
-    val zone = remember { java.time.ZoneId.of("Africa/Kampala") }
+    val zone = remember { java.time.ZoneId.systemDefault() }
     var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
     var view by remember { mutableStateOf("Week") }
     val scheduled = tasks.filter { it.scheduledAtMillis != null }
@@ -821,7 +821,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     val done = tasks.count { it.isCompleted }
     val percent = if (tasks.isEmpty()) 0 else done * 100 / tasks.size
     val trackedTotal = tasks.sumOf { it.timeSpentMillis } + if (tracking?.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L
-    val reportZone = remember { java.time.ZoneId.of("Africa/Kampala") }
+    val reportZone = remember { java.time.ZoneId.systemDefault() }
     val today = java.time.LocalDate.now(reportZone)
     val weekStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
     val intervals = entries.map { com.haskatech.myday.focus.TimeInterval(it.startedAtMillis, it.endedAtMillis) } +
