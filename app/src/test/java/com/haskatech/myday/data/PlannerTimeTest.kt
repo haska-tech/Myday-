@@ -25,6 +25,16 @@ class PlannerTimeTest {
         assertEquals("UTC+05:30", PlannerTime.utcOffsetLabel())
     }
 
+    @Test fun timetableCoversEveryHourFromMidnightThroughElevenPm() {
+        assertEquals((0..23).toList(), PlannerTime.dayHours.toList())
+    }
+
+    @Test fun timetableHourUsesTheSelectedDeviceTimezone() {
+        val instant = java.time.Instant.parse("2026-11-22T00:30:00Z").toEpochMilli()
+        assertEquals(5, PlannerTime.hourAt(instant, ZoneId.of("Asia/Kolkata")))
+        assertEquals(0, PlannerTime.hourAt(instant, ZoneId.of("UTC")))
+    }
+
     @Test fun planningZoneFollowsDeviceTimezone() {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
         assertEquals(ZoneId.of("Asia/Kolkata"), PlannerTime.zoneId())
