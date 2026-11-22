@@ -68,8 +68,8 @@ class MyDayWidgetProvider : AppWidgetProvider() {
     }
    }
    val empty = when(snapshot.emptyState) {
-    WidgetEmptyState.NONE_PLANNED -> "Nothing planned yet.\\nTap to add a task."
-    WidgetEmptyState.ALL_COMPLETED -> "All caught up!\\nYou've completed your tasks."
+    WidgetEmptyState.NONE_PLANNED -> "Nothing planned yet.\nTap to add a task."
+    WidgetEmptyState.ALL_COMPLETED -> "All caught up!\nYou've completed your tasks."
     WidgetEmptyState.HAS_TASKS -> ""
    }
    val open = PendingIntent.getActivity(context,widgetId,Intent(context,MainActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -79,7 +79,7 @@ class MyDayWidgetProvider : AppWidgetProvider() {
     val views = RemoteViews(context.packageName,layout)
     views.setTextViewText(R.id.widget_date,dateFormat.format(Date(snapshot.generatedAtMillis)))
     views.setTextViewText(R.id.widget_priorities,if(snapshot.topPriorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES")
-    views.setTextViewText(R.id.widget_tasks,lines.joinToString("\\n").ifBlank { empty })
+    views.setTextViewText(R.id.widget_tasks,lines.joinToString("\n").ifBlank { empty })
     views.setOnClickPendingIntent(R.id.widget_tasks,open)
     views.setOnClickPendingIntent(R.id.widget_title,open)
     views.setOnClickPendingIntent(R.id.widget_footer,open)
