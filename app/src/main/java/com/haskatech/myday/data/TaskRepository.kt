@@ -15,6 +15,7 @@ class TaskRepository(private val taskDao: TaskDao) {
     ): List<TaskEntity>? {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return null
+        if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return null
 
         val seriesId = if (recurrenceRule != "None" && scheduledAtMillis != null) UUID.randomUUID().toString() else null
         val first = TaskEntity(
