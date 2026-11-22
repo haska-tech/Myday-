@@ -54,10 +54,11 @@ interface TaskDao {
         SET title = :title,
             priority = :priority,
             scheduledAtMillis = :scheduledAtMillis,
-            reminderAtMillis = :reminderAtMillis
+            reminderAtMillis = :reminderAtMillis,
+            plannedDurationMinutes = :plannedDurationMinutes
         WHERE id = :taskId
     """)
-    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?): Int
+    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Int
 
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
