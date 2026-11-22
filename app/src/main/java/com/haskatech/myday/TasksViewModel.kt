@@ -31,6 +31,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
+            if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return@launch
             if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
 
