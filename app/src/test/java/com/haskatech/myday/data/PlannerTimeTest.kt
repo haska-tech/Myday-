@@ -31,7 +31,7 @@ class PlannerTimeTest {
 
     @Test fun timetableHourUsesTheSelectedDeviceTimezone() {
         val instant = java.time.Instant.parse("2026-11-22T00:30:00Z").toEpochMilli()
-        assertEquals(5, PlannerTime.hourAt(instant, ZoneId.of("Asia/Kolkata")))
+        assertEquals(6, PlannerTime.hourAt(instant, ZoneId.of("Asia/Kolkata")))
         assertEquals(0, PlannerTime.hourAt(instant, ZoneId.of("UTC")))
     }
 
