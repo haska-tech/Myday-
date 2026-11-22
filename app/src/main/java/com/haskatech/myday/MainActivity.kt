@@ -829,7 +829,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     val dailyTotals = TimeTrackingRules.durationByDate(intervals, reportZone)
     val todayTracked = dailyTotals[today] ?: 0L
     val weekTracked = (0L..6L).sumOf { dailyTotals[weekStart.plusDays(it)] ?: 0L }
-    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Insights", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
         Text("See where your time and effort go.", color = Muted, fontSize = 14.sp)
@@ -880,7 +880,7 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 
 @Composable
 private fun SettingsScreen(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
             Text("Settings", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
