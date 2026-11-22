@@ -96,7 +96,7 @@ class TaskRepository(private val taskDao: TaskDao) {
 
         val targets = if (applyToSeries && task.recurrenceSeriesId != null) {
             taskDao.getRecurrenceSeries(task.recurrenceSeriesId)
-                .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (task.scheduledAtMillis ?: Long.MIN_VALUE) }
+                .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (task.scheduledAtMillis ?: Long.MIN_VALUE) && (!it.isCompleted || it.id == task.id) }
         } else listOf(task)
         val oldStart = task.scheduledAtMillis
         val newStart = scheduledAtMillis
