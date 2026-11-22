@@ -35,6 +35,26 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Configure persistent development signing
+        if: github.ref == 'refs/heads/development'
+        env:
+          MYDAY_KEYSTORE_BASE64: ${{ secrets.MYDAY_KEYSTORE_BASE64 }}
+          MYDAY_KEYSTORE_PASSWORD: ${{ secrets.MYDAY_KEYSTORE_PASSWORD }}
+          MYDAY_KEY_ALIAS: ${{ secrets.MYDAY_KEY_ALIAS }}
+          MYDAY_KEY_PASSWORD: ${{ secrets.MYDAY_KEY_PASSWORD }}
+        run: |
+          test -n "$MYDAY_KEYSTORE_BASE64" || (echo "Missing MYDAY_KEYSTORE_BASE64 repository secret" && exit 1)
+          test -n "$MYDAY_KEYSTORE_PASSWORD" || (echo "Missing MYDAY_KEYSTORE_PASSWORD repository secret" && exit 1)
+          test -n "$MYDAY_KEY_ALIAS" || (echo "Missing MYDAY_KEY_ALIAS repository secret" && exit 1)
+          test -n "$MYDAY_KEY_PASSWORD" || (echo "Missing MYDAY_KEY_PASSWORD repository secret" && exit 1)
+          signing_dir="$RUNNER_TEMP/myday-signing"
+          mkdir -p "$signing_dir"
+          printf '%s' "$MYDAY_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/myday-debug.keystore"
+          test -s "$signing_dir/myday-debug.keystore"
+          echo "MYDAY_KEYSTORE_PATH=$signing_dir/myday-debug.keystore" >> "$GITHUB_ENV"
+          echo "MYDAY_KEYSTORE_PASSWORD=$MYDAY_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "MYDAY_KEY_ALIAS=$MYDAY_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "MYDAY_KEY_PASSWORD=$MYDAY_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Run unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug
       - name: Upload debug APK
