@@ -15,6 +15,11 @@ class PlannerTimeTest {
         TimeZone.setDefault(originalTimezone)
     }
 
+    @Test fun legacyTaskDurationDefaultsToUnspecified() {
+        val task = TaskEntity(title = "Existing task")
+        assertEquals(null, task.plannedDurationMinutes)
+    }
+
     @Test fun planningZoneFollowsDeviceTimezone() {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
         assertEquals(ZoneId.of("Asia/Kolkata"), PlannerTime.zoneId())
