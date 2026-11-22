@@ -184,8 +184,8 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
             initialTask = taskBeingEdited,
             onDismiss = { taskBeingEdited = null },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, _, durationMinutes ->
-                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes) }
+            onAdd = { title, priority, scheduledAt, reminderAt, _, durationMinutes, applyToSeries ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, applyToSeries) }
                 taskBeingEdited = null
             }
         )
@@ -194,7 +194,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes ->
+            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, _ ->
                 tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes)
                 showAddDialog = false
             }
@@ -476,11 +476,12 @@ private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
     allTasks: List<TaskEntity>,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Long?, Long?, String, Int?) -> Unit
+    onAdd: (String, String, Long?, Long?, String, Int?, Boolean) -> Unit
 ) {
     var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
     var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
     var recurrenceRule by remember(initialTask?.id) { mutableStateOf(initialTask?.recurrenceRule ?: "None") }
+    var applyToSeries by remember(initialTask?.id) { mutableStateOf(false) }
     var scheduledAt by remember(initialTask?.id) { mutableStateOf(initialTask?.scheduledAtMillis) }
     var plannedDurationMinutes by remember(initialTask?.id) { mutableStateOf(initialTask?.plannedDurationMinutes) }
     val conflicts = remember(scheduledAt, plannedDurationMinutes, allTasks, initialTask?.id) {
@@ -625,7 +626,12 @@ private fun AddTaskDialog(
                         }
                     } else if (initialTask.recurrenceRule != "None") {
                         Text("Recurring task · ${initialTask.recurrenceRule}", color = Muted, fontSize = 11.sp)
-                        Text("Changes apply to this occurrence only.", color = Muted, fontSize = 10.sp)
+                        Text("APPLY CHANGES TO", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            FilterChip(selected = !applyToSeries, onClick = { applyToSeries = false }, label = { Text("This occurrence", fontSize = 10.sp) })
+                            FilterChip(selected = applyToSeries, onClick = { applyToSeries = true }, label = { Text("This and future", fontSize = 10.sp) })
+                        }
+                        Text("Past occurrences stay unchanged.", color = Muted, fontSize = 10.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
@@ -656,7 +662,7 @@ private fun AddTaskDialog(
         confirmButton = {
             Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
-                onAdd(title, priority, scheduledAt, reminder, recurrenceRule, plannedDurationMinutes)
+                onAdd(title, priority, scheduledAt, reminder, recurrenceRule, plannedDurationMinutes, applyToSeries)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
