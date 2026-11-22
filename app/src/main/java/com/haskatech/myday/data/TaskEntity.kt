@@ -17,5 +17,7 @@ data class TaskEntity(
     val isCompleted: Boolean = false,
     val createdAtMillis: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "0") val timeSpentMillis: Long = 0L,
-    val recurrenceSeriesId: String? = null
+    val recurrenceSeriesId: String? = null,
+    /** Optional planned block length; null preserves the legacy point-in-time task model. */
+    val plannedDurationMinutes: Int? = null
 )
