@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -31,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,31 +91,37 @@ private fun PomodoroScreen() {
     }
     Surface(Modifier.fillMaxSize(), color = FocusPaper) {
         Column(
-            Modifier.fillMaxSize().padding(22.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("MYDAY", color = FocusNavy, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, letterSpacing = 1.sp,
-                    modifier = Modifier.weight(1f))
+                IconButton(onClick = { (context as? android.app.Activity)?.finish() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = FocusNavy)
+                }
+                Text("MYDAY", color = FocusNavy, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,
+                    letterSpacing = 1.sp, modifier = Modifier.weight(1f))
                 Text("POMODORO", color = FocusMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
             Text("Stay focused.", color = FocusNavy, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
             Text("One thing at a time. Give it your best.", color = FocusMuted, fontSize = 13.sp)
-            Text(phaseLabel, color = FocusMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(30.dp),
+            Surface(color = FocusLime.copy(alpha = 0.24f), shape = RoundedCornerShape(50)) {
+                Text(phaseLabel, color = FocusNavy, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
+            }
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(26.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(
-                    Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 18.dp),
+                    Modifier.fillMaxWidth().padding(vertical = 22.dp, horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    BoxTimer(progress = progress, time = "%02d:%02d".format(minutes, seconds))
+                    BoxTimer(progress = progress, time = "%02d:%02d".format(minutes, seconds), diameter = 190.dp)
                     Spacer(Modifier.height(18.dp))
                     Text(timer.completedFocusSessions.toString() + " focus sessions completed",
                         color = FocusMuted, fontSize = 13.sp)
                     Spacer(Modifier.height(20.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = {
                                 if (timer.isRunning) PomodoroTimerManager.pause(context)
@@ -117,11 +129,11 @@ private fun PomodoroScreen() {
                                 timer = PomodoroTimerManager.snapshot(context)
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = FocusNavy)
-                        ) { Text(if (timer.isRunning) "Pause" else "Start") }
+                        , modifier = Modifier.weight(1f)) { Text(if (timer.isRunning) "Pause session" else "Start focus") }
                         OutlinedButton(onClick = {
                             PomodoroTimerManager.reset(context)
                             timer = PomodoroTimerManager.snapshot(context)
-                        }) { Text("Reset") }
+                        }, modifier = Modifier.weight(1f)) { Text("Reset") }
                     }
                 }
             }
@@ -131,7 +143,8 @@ private fun PomodoroScreen() {
                     Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Timer lengths", color = FocusNavy, fontWeight = FontWeight.Bold)
+                    Text("CUSTOMISE YOUR TIMER", color = FocusMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.sp)
+                    Text("Timer lengths", color = FocusNavy, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     DurationControl("Focus", timer.focusMinutes, !timer.isRunning) {
                         PomodoroTimerManager.setDuration(context, "FOCUS", it)
                         timer = PomodoroTimerManager.snapshot(context)
@@ -155,11 +168,11 @@ private fun PomodoroScreen() {
 }
 
 @Composable
-private fun BoxTimer(progress: Float, time: String) {
+private fun BoxTimer(progress: Float, time: String, diameter: androidx.compose.ui.unit.Dp = 190.dp) {
     Box(contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
             progress = { progress },
-            modifier = Modifier.size(210.dp),
+            modifier = Modifier.size(diameter),
             color = FocusLime,
             trackColor = FocusPaper,
             strokeWidth = 10.dp

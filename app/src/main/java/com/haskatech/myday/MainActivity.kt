@@ -312,51 +312,82 @@ private fun TaskRow(
     onPauseTracking: (TaskEntity) -> Unit = {},
     onStopTracking: (TaskEntity) -> Unit = {}
 ) {
+    val isTrackingThisTask = tracking?.taskId == task.id
+    val elapsed = if (isTrackingThisTask && tracking?.startedAtMillis != null) {
+        TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis)
+    } else 0L
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle(task, it) },
-                colors = CheckboxDefaults.colors(checkedColor = Navy))
-            Column(Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
-                Text(task.priority, color = Muted, fontSize = 12.sp)
-                Text("Tracked " + TimeTrackingRules.formatDuration(task.timeSpentMillis + if (tracking?.taskId == task.id && tracking.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L), color = Muted, fontSize = 12.sp)
-                if (!task.isCompleted) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (tracking?.taskId == task.id) {
-                            if (tracking.startedAtMillis == null) {
-                                TextButton(onClick = { onStartTracking(task) }) { Text("Resume", fontSize = 11.sp) }
-                            } else {
-                                TextButton(onClick = { onPauseTracking(task) }) { Text("Pause", fontSize = 11.sp) }
-                            }
-                            TextButton(onClick = { onStopTracking(task) }) { Text("Stop", fontSize = 11.sp) }
-                        } else {
-                            TextButton(onClick = { onStartTracking(task) }, enabled = tracking == null) {
-                                Text("Start timer", fontSize = 11.sp)
-                            }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle(task, it) },
+                    colors = CheckboxDefaults.colors(checkedColor = Navy))
+                Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
+                    Spacer(Modifier.height(3.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Surface(color = Color(0xFFEDF1F5), shape = RoundedCornerShape(6.dp)) {
+                            Text(task.priority, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                         }
+                        Text("Tracked " + TimeTrackingRules.formatDuration(task.timeSpentMillis + elapsed),
+                            color = Muted, fontSize = 11.sp)
+                    }
+                }
+                if (onDelete != null) {
+                    IconButton(onClick = { onDelete(task) }) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete task", tint = Muted)
                     }
                 }
             }
             if (!task.isCompleted) {
-                TextButton(onClick = { onTopPriority(task, !task.isTopPriority) }) {
-                    Text(if (task.isTopPriority) "TOP 3 ✓" else "TOP 3", fontSize = 10.sp)
+                HorizontalDivider(color = Color(0xFFF0F2F5))
+                Row(Modifier.fillMaxWidth().padding(start = 44.dp, top = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isTrackingThisTask) {
+                            if (tracking?.startedAtMillis == null) {
+                                TextButton(onClick = { onStartTracking(task) }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(17.dp))
+                                    Text("Resume", fontSize = 11.sp)
+                                }
+                            } else {
+                                TextButton(onClick = { onPauseTracking(task) }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                                    Icon(Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(17.dp))
+                                    Text("Pause", fontSize = 11.sp)
+                                }
+                            }
+                            TextButton(onClick = { onStopTracking(task) }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                                Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(17.dp))
+                                Text("Stop", fontSize = 11.sp)
+                            }
+                        } else {
+                            TextButton(onClick = { onStartTracking(task) }, enabled = tracking == null,
+                                contentPadding = PaddingValues(horizontal = 6.dp)) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(17.dp))
+                                Text("Start timer", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                    TextButton(onClick = { onTopPriority(task, !task.isTopPriority) },
+                        contentPadding = PaddingValues(horizontal = 6.dp)) {
+                        Icon(if (task.isTopPriority) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text(if (task.isTopPriority) "TOP 3" else "Top 3", fontSize = 10.sp)
+                    }
                 }
-            }
-            if (onDelete != null) {
-                IconButton(onClick = { onDelete(task) }) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Delete task", tint = Muted)
-                }
+            } else {
+                Text("Completed", color = Muted, fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 52.dp, top = 2.dp))
             }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, Long?, String) -> Unit) {
