@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -637,40 +638,181 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
             Spacer(Modifier.height(8.dp))
             Text("Selected day · ${selectedDate.format(dateFormatter)}", color = Navy, fontWeight = FontWeight.Bold)
         }
-        val datesToShow = if (view == "Month") listOf(selectedDate) else visibleDates
-        val entries = datesToShow.flatMap { date -> tasksFor(date).map { date to it } }
-        if (entries.isEmpty()) {
-            EmptyState(Icons.Default.CalendarToday, "Nothing scheduled", "Your calendar is open. Add a task with a date and time to see it here.")
+        if (view == "Week") {
+            val tasksByDate = visibleDates.associateWith { tasksFor(it) }
+            WeeklyTimetable(
+                dates = visibleDates,
+                tasksByDate = tasksByDate,
+                selectedDate = selectedDate,
+                onSelectDate = { selectedDate = it },
+                zone = zone
+            )
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                entries.forEach { (date, task) ->
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-                        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.width(76.dp)) {
-                                Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
-                                    color = Muted, fontSize = 11.sp)
-                                Text(DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault()).apply {
-                                    timeZone = java.util.TimeZone.getTimeZone(zone)
-                                }.format(Date(task.scheduledAtMillis!!)),
-                                    color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            val datesToShow = if (view == "Month") listOf(selectedDate) else visibleDates
+            val entries = datesToShow.flatMap { date -> tasksFor(date).map { date to it } }
+            if (entries.isEmpty()) {
+                EmptyState(Icons.Default.CalendarToday, "Nothing scheduled", "Your calendar is open. Add a task with a date and time to see it here.")
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    entries.forEach { (date, task) ->
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                            Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.width(76.dp)) {
+                                    Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
+                                        color = Muted, fontSize = 11.sp)
+                                    Text(DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault()).apply {
+                                        timeZone = java.util.TimeZone.getTimeZone(zone)
+                                    }.format(Date(task.scheduledAtMillis!!)),
+                                        color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
+                                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
+                                    val details = listOfNotNull(
+                                        if (task.reminderAtMillis != null) "Reminder" else null,
+                                        if (task.recurrenceRule != "None") "Repeats ${task.recurrenceRule.lowercase()}" else null,
+                                        if (task.isCompleted) "Completed" else null
+                                    )
+                                    if (details.isNotEmpty()) Text(details.joinToString(" · "), color = Muted, fontSize = 11.sp)
+                                }
+                                if (task.priority == "High") Text("HIGH", color = Navy, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
-                            Column(Modifier.weight(1f)) {
-                                Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
-                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
-                                val details = listOfNotNull(
-                                    if (task.reminderAtMillis != null) "Reminder" else null,
-                                    if (task.recurrenceRule != "None") "Repeats ${task.recurrenceRule.lowercase()}" else null,
-                                    if (task.isCompleted) "Completed" else null
-                                )
-                                if (details.isNotEmpty()) Text(details.joinToString(" · "), color = Muted, fontSize = 11.sp)
-                            }
-                            if (task.priority == "High") Text("HIGH", color = Navy, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun WeeklyTimetable(
+    dates: List<java.time.LocalDate>,
+    tasksByDate: Map<java.time.LocalDate, List<TaskEntity>>,
+    selectedDate: java.time.LocalDate,
+    onSelectDate: (java.time.LocalDate) -> Unit,
+    zone: java.time.ZoneId
+) {
+    val horizontalState = rememberScrollState()
+    val verticalState = rememberScrollState()
+    val today = java.time.LocalDate.now(zone)
+    val dayFormatter = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+
+    Text("WEEK AT A GLANCE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+    Text("Swipe sideways to see all 7 days", color = Muted, fontSize = 11.sp)
+    Spacer(Modifier.height(8.dp))
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(560.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(18.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE7EBF0))
+    ) {
+        Column(Modifier.fillMaxSize().verticalScroll(verticalState)) {
+            Row(Modifier.horizontalScroll(horizontalState)) {
+                Column {
+                    Box(Modifier.width(54.dp).height(58.dp), contentAlignment = Alignment.Center) {
+                        Text("GMT+3", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                    (6..22).forEach { hour ->
+                        Box(
+                            Modifier.width(54.dp).height(72.dp).padding(end = 6.dp),
+                            contentAlignment = Alignment.TopEnd
+                        ) {
+                            Text(
+                                java.time.LocalTime.of(hour, 0).format(timeFormatter),
+                                color = Muted,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(top = 3.dp)
+                            )
+                        }
+                    }
+                }
+                dates.forEach { date ->
+                    val isToday = date == today
+                    val isSelected = date == selectedDate
+                    Column(Modifier.width(108.dp)) {
+                        Surface(
+                            onClick = { onSelectDate(date) },
+                            modifier = Modifier.fillMaxWidth().height(58.dp).padding(end = 1.dp, bottom = 4.dp),
+                            color = when {
+                                isSelected -> Lime
+                                isToday -> Color(0xFFEAF2D4)
+                                else -> Color(0xFFF4F6F9)
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                Modifier.fillMaxSize().padding(vertical = 5.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(date.format(dayFormatter).uppercase(), color = Navy, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text(date.dayOfMonth.toString(), color = Navy, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
+                        (6..22).forEach { hour ->
+                            val hourTasks = tasksByDate[date].orEmpty().filter { task ->
+                                java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).hour == hour
+                            }
+                            Box(
+                                Modifier.fillMaxWidth().height(72.dp)
+                                    .padding(end = 1.dp)
+                                    .background(if (isToday) Color(0xFFFBFDF7) else Color.White)
+                                    .then(Modifier)
+                            ) {
+                                Column(
+                                    Modifier.fillMaxSize().padding(horizontal = 3.dp, vertical = 3.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    hourTasks.take(2).forEach { task ->
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                                            color = if (task.isCompleted) Color(0xFFF0F2F4) else Color(0xFFEAF2D4),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Column(Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                                                val taskTime = java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalTime()
+                                                Text(taskTime.format(timeFormatter), color = Muted, fontSize = 7.sp, maxLines = 1)
+                                                Text(
+                                                    task.title,
+                                                    color = Navy,
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (hourTasks.size > 2) {
+                                        Text("+${hourTasks.size - 2} more", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            androidx.compose.foundation.Canvas(
+                                Modifier.fillMaxWidth().height(1.dp)
+                            ) {
+                                drawLine(
+                                    color = Color(0xFFE9EDF2),
+                                    start = androidx.compose.ui.geometry.Offset.Zero,
+                                    end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                                    strokeWidth = 1.dp.toPx()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (dates.all { tasksByDate[it].orEmpty().isEmpty() }) {
+        Text("No tasks scheduled this week yet.", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+    } else {
+        Text("Tasks appear in their scheduled hour. Times use Kampala time (UTC+3).", color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
