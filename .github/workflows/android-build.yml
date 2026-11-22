@@ -52,11 +52,11 @@ jobs:
           mkdir -p "$signing_dir"
           printf '%s' "$MYDAY_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/myday-debug.keystore"
           test -s "$signing_dir/myday-debug.keystore"
-          # Pin the exact certificate used by the currently installed #96 APK.
-          expected="68ab247461a5694acada2b73efd44bc84eb9c94ba78630e1ff85af19819a5bbf"
+          # Pin the permanent #101 baseline certificate.
+          expected="19e1a377b55b7fc12f0ee50d042d24ceea511a9c169ff87bb443b697456ac8d6"
           actual="$(keytool -list -v -keystore "$signing_dir/myday-debug.keystore" -storepass "$MYDAY_KEYSTORE_PASSWORD" -alias "$MYDAY_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           test "$actual" = "$expected" || { echo "STOP: signing certificate does not match installed #96 APK"; exit 1; }
-          echo "Verified permanent signing certificate matches installed #96 APK."
+          echo "Verified permanent signing certificate matches permanent #101 baseline."
           echo "MYDAY_KEYSTORE_PATH=$signing_dir/myday-debug.keystore" >> "$GITHUB_ENV"
           echo "MYDAY_KEYSTORE_PASSWORD=$MYDAY_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "MYDAY_KEY_ALIAS=$MYDAY_KEY_ALIAS" >> "$GITHUB_ENV"
@@ -78,7 +78,7 @@ jobs:
           package="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
           version_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p")"
           test "$package" = "com.haskatech.myday" || { echo "STOP: unexpected application ID: $package"; exit 1; }
-          test "$version_code" -gt 1 || { echo "STOP: versionCode must increase beyond installed versionCode 1"; exit 1; }
+          test "$version_code" -gt 2 || { echo "STOP: versionCode must increase beyond installed versionCode 1"; exit 1; }
           echo "Verified APK certificate, application ID=$package, versionCode=$version_code."
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
