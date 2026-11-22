@@ -4,12 +4,10 @@ import java.util.Calendar
 import java.util.TimeZone
 
 /**
- * Calendar-based recurrence arithmetic in the app's Uganda timezone.
+ * Calendar-based recurrence arithmetic in the device's current timezone.
  * Returns dates strictly after the supplied date and no later than the horizon.
  */
 object RecurrenceSchedule {
-    private val timezone: TimeZone = TimeZone.getTimeZone("Africa/Kampala")
-
     fun nextDate(afterMillis: Long, rule: String): Long? {
         val field = when (rule) {
             "Daily" -> Calendar.DAY_OF_YEAR
@@ -17,7 +15,7 @@ object RecurrenceSchedule {
             "Monthly" -> Calendar.MONTH
             else -> return null
         }
-        return Calendar.getInstance(timezone).apply {
+        return Calendar.getInstance(TimeZone.getDefault()).apply {
             timeInMillis = afterMillis
             add(field, 1)
         }.timeInMillis
