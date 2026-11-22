@@ -182,8 +182,9 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         AddTaskDialog(
             initialTask = taskBeingEdited,
             onDismiss = { taskBeingEdited = null },
-            onAdd = { title, priority, scheduledAt, reminderAt, _ ->
-                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt) }
+            allTasks = tasks,
+            onAdd = { title, priority, scheduledAt, reminderAt, _, durationMinutes ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes) }
                 taskBeingEdited = null
             }
         )
@@ -191,8 +192,9 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     if (showAddDialog) {
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
-            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule ->
-                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule)
+            allTasks = tasks,
+            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes)
                 showAddDialog = false
             }
         )
@@ -471,13 +473,18 @@ private fun TaskRow(
 @Composable
 private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
+    allTasks: List<TaskEntity>,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Long?, Long?, String) -> Unit
+    onAdd: (String, String, Long?, Long?, String, Int?) -> Unit
 ) {
     var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
     var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
     var recurrenceRule by remember(initialTask?.id) { mutableStateOf(initialTask?.recurrenceRule ?: "None") }
     var scheduledAt by remember(initialTask?.id) { mutableStateOf(initialTask?.scheduledAtMillis) }
+    var plannedDurationMinutes by remember(initialTask?.id) { mutableStateOf(initialTask?.plannedDurationMinutes) }
+    val conflicts = remember(scheduledAt, plannedDurationMinutes, allTasks, initialTask?.id) {
+        TaskConflictRules.findConflicts(scheduledAt, plannedDurationMinutes, allTasks, initialTask?.id)
+    }
     val initialReminderOffset = initialTask?.let { task ->
         if (task.scheduledAtMillis != null && task.reminderAtMillis != null)
             ((task.scheduledAtMillis - task.reminderAtMillis) / 60_000L).toInt() else 0
@@ -582,6 +589,32 @@ private fun AddTaskDialog(
                     Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
                 if (scheduledAt != null) {
+                    Text("ESTIMATED DURATION", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        listOf<Int?>(null, 15, 30, 45, 60, 90, 120).forEach { minutes ->
+                            FilterChip(
+                                selected = plannedDurationMinutes == minutes,
+                                onClick = { plannedDurationMinutes = minutes },
+                                label = { Text(if (minutes == null) "None" else "${minutes}m", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                    if (conflicts.isNotEmpty()) {
+                        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)), shape = RoundedCornerShape(12.dp)) {
+                            Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Schedule conflict detected", color = Color(0xFF8A4B08), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                conflicts.forEach { conflict ->
+                                    Text(
+                                        "Overlaps with ${conflict.title} · " +
+                                            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.startMillis)) +
+                                            "–" + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.endMillis)),
+                                        color = Color(0xFF8A4B08), fontSize = 11.sp
+                                    )
+                                }
+                                Text("You can still save, but review the overlapping time blocks.", color = Color(0xFF8A4B08), fontSize = 10.sp)
+                            }
+                        }
+                    }
                     if (initialTask == null) {
                         Text("REPEAT", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -622,7 +655,7 @@ private fun AddTaskDialog(
         confirmButton = {
             Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
-                onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
+                onAdd(title, priority, scheduledAt, reminder, recurrenceRule, plannedDurationMinutes)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
@@ -990,7 +1023,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         }
         SettingsGroup("ABOUT") {
             SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
-            SettingsRow(Icons.Default.Info, "Version", "0.2.2 · Early access")
+            SettingsRow(Icons.Default.Info, "Version", "0.2.3 · Early access")
         }
         Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
