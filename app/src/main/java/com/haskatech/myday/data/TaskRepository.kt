@@ -75,6 +75,12 @@ class TaskRepository(private val taskDao: TaskDao) {
         return taskDao.setTopPriorityIfAllowed(id, isTop) > 0
     }
 
+    suspend fun updateTask(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?): Boolean {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return false
+        return taskDao.updateDetails(taskId, cleanTitle, priority, scheduledAtMillis, reminderAtMillis) > 0
+    }
+
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
 
     companion object {
