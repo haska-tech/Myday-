@@ -46,20 +46,21 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?) {
+    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, applyToSeries: Boolean = false) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (!com.haskatech.myday.data.TaskEditRules.isValid(
                     title, scheduledAtMillis, reminderAtMillis, now,
                     task.scheduledAtMillis, task.reminderAtMillis
                 )) return@launch
-            ReminderScheduler.cancel(getApplication(), task.id)
-            if (repository.updateTask(task.id, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes)) {
-                reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
-                    ReminderScheduler.schedule(getApplication(), task.id, title.trim(), it)
+            val updatedTasks = repository.updateTask(task, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes, applyToSeries)
+            updatedTasks.forEach { updated ->
+                ReminderScheduler.cancel(getApplication(), updated.id)
+                updated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
+                    ReminderScheduler.schedule(getApplication(), updated.id, updated.title, it)
                 }
-                MyDayWidgetProvider.requestRefresh(getApplication())
             }
+            if (updatedTasks.isNotEmpty()) MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 

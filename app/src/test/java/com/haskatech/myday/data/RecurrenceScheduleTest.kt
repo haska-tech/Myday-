@@ -3,6 +3,8 @@ package com.haskatech.myday.data
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -27,10 +29,16 @@ class RecurrenceScheduleTest {
         assertEquals(listOf(date(2026, 1, 8), date(2026, 1, 15)), dates)
     }
 
-    @Test fun monthlyCreatesCalendarMonthOccurrences() {
-        val start = date(2026, 1, 15)
-        val dates = RecurrenceSchedule.datesThrough(start, "Monthly", date(2026, 4, 15))
-        assertEquals(listOf(date(2026, 2, 15), date(2026, 3, 15), date(2026, 4, 15)), dates)
+    @Test fun monthlyKeepsOriginalDayAfterShortMonth() {
+        val start = date(2026, 1, 31)
+        val dates = RecurrenceSchedule.datesThrough(start, "Monthly", date(2026, 4, 30))
+        assertEquals(listOf(date(2026, 2, 28), date(2026, 3, 31), date(2026, 4, 30)), dates)
+    }
+
+    @Test fun monthlyLeapYearClampsAndThenReturnsToAnchorDay() {
+        val start = date(2024, 1, 31)
+        val dates = RecurrenceSchedule.datesThrough(start, "Monthly", date(2024, 3, 31))
+        assertEquals(listOf(date(2024, 2, 29), date(2024, 3, 31)), dates)
     }
 
     @Test fun unsupportedAndNoneRulesDoNotGenerateDates() {
@@ -43,18 +51,20 @@ class RecurrenceScheduleTest {
         val dates = RecurrenceSchedule.datesThrough(start, "Daily", date(2026, 2, 3))
         assertTrue(dates.all { it > start && it <= date(2026, 2, 3) })
     }
-    @Test fun recurrencePreservesWallClockTimeInDeviceTimezone() {
+
+    @Test fun recurrencePreservesWallClockTimeInDeviceTimezoneAcrossDst() {
         val original = TimeZone.getDefault()
         try {
-            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
-            val start = date(2026, 11, 22)
-            val next = RecurrenceSchedule.nextDate(start, "Daily")!!
-            val calendar = Calendar.getInstance().apply { timeInMillis = next }
-            assertEquals(23, calendar.get(Calendar.DAY_OF_MONTH))
-            assertEquals(9, calendar.get(Calendar.HOUR_OF_DAY))
+            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+            val start = Calendar.getInstance().apply {
+                set(2026, Calendar.MARCH, 7, 9, 0, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val next = RecurrenceSchedule.datesThrough(start, "Daily", start + 3L * 24 * 60 * 60 * 1000)
+            val localTimes = next.map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).hour }
+            assertEquals(listOf(9, 9, 9), localTimes)
         } finally {
             TimeZone.setDefault(original)
         }
     }
-
 }

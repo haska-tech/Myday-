@@ -1,5 +1,7 @@
 package com.haskatech.myday.data
 
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 class TaskRepository(private val taskDao: TaskDao) {
@@ -52,9 +54,12 @@ class TaskRepository(private val taskDao: TaskDao) {
             taskDao.setRecurrenceSeriesId(task.id, it)
         }
         val series = taskDao.getRecurrenceSeries(seriesId)
+        val anchor = series.mapNotNull { it.scheduledAtMillis }.minOrNull() ?: task.scheduledAtMillis
         val latestScheduled = series.mapNotNull { it.scheduledAtMillis }.maxOrNull() ?: task.scheduledAtMillis
         val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
-        val newDates = RecurrenceSchedule.datesThrough(latestScheduled, task.recurrenceRule, horizon)
+        val existingDates = series.mapNotNull { it.scheduledAtMillis }.toHashSet()
+        val newDates = RecurrenceSchedule.datesThrough(anchor, task.recurrenceRule, horizon)
+            .filter { it > latestScheduled && it !in existingDates }
         if (newDates.isEmpty()) return emptyList()
 
         val reminderOffset = task.reminderAtMillis?.minus(task.scheduledAtMillis)
@@ -74,15 +79,52 @@ class TaskRepository(private val taskDao: TaskDao) {
         return templates.mapIndexed { index, item -> item.copy(id = ids[index]) }
     }
 
-    suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean {
-        return taskDao.setTopPriorityIfAllowed(id, isTop) > 0
-    }
+    suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean =
+        taskDao.setTopPriorityIfAllowed(id, isTop) > 0
 
-    suspend fun updateTask(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Boolean {
+    suspend fun updateTask(
+        task: TaskEntity,
+        title: String,
+        priority: String,
+        scheduledAtMillis: Long?,
+        reminderAtMillis: Long?,
+        plannedDurationMinutes: Int?,
+        applyToSeries: Boolean = false
+    ): List<TaskEntity> {
         val cleanTitle = title.trim()
-        if (cleanTitle.isEmpty()) return false
-        if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return false
-        return taskDao.updateDetails(taskId, cleanTitle, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes) > 0
+        if (cleanTitle.isEmpty() || (plannedDurationMinutes != null && plannedDurationMinutes <= 0)) return emptyList()
+
+        val targets = if (applyToSeries && task.recurrenceSeriesId != null) {
+            taskDao.getRecurrenceSeries(task.recurrenceSeriesId)
+                .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (task.scheduledAtMillis ?: Long.MIN_VALUE) }
+        } else listOf(task)
+        val oldStart = task.scheduledAtMillis
+        val newStart = scheduledAtMillis
+        val zone = ZoneId.systemDefault()
+        val oldLocal = oldStart?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        val newLocal = newStart?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        val dayShift = if (applyToSeries && oldLocal != null && newLocal != null)
+            java.time.temporal.ChronoUnit.DAYS.between(oldLocal.toLocalDate(), newLocal.toLocalDate()) else 0L
+        val reminderOffset = if (newStart != null && reminderAtMillis != null) reminderAtMillis - newStart else null
+
+        val updated = mutableListOf<TaskEntity>()
+        for (target in targets) {
+            val targetStart = if (applyToSeries && target.id != task.id && target.scheduledAtMillis != null && newLocal != null) {
+                val targetLocal = Instant.ofEpochMilli(target.scheduledAtMillis).atZone(zone)
+                targetLocal.toLocalDate().plusDays(dayShift).atTime(newLocal.toLocalTime()).atZone(zone)
+                    .toInstant().toEpochMilli()
+            } else newStart
+            val targetReminder = targetStart?.let { start -> reminderOffset?.let { start + it } }
+            val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes)
+            if (changed > 0) updated += target.copy(
+                title = cleanTitle,
+                priority = priority,
+                scheduledAtMillis = targetStart,
+                reminderAtMillis = targetReminder,
+                plannedDurationMinutes = plannedDurationMinutes
+            )
+        }
+        return updated
     }
 
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
