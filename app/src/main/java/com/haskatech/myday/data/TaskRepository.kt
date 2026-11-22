@@ -10,7 +10,8 @@ class TaskRepository(private val taskDao: TaskDao) {
         priority: String = "Normal",
         scheduledAtMillis: Long? = null,
         reminderAtMillis: Long? = null,
-        recurrenceRule: String = "None"
+        recurrenceRule: String = "None",
+        plannedDurationMinutes: Int? = null
     ): List<TaskEntity>? {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return null
@@ -22,7 +23,8 @@ class TaskRepository(private val taskDao: TaskDao) {
             scheduledAtMillis = scheduledAtMillis,
             reminderAtMillis = reminderAtMillis,
             recurrenceRule = recurrenceRule,
-            recurrenceSeriesId = seriesId
+            recurrenceSeriesId = seriesId,
+            plannedDurationMinutes = plannedDurationMinutes
         )
         val occurrences = if (seriesId != null && scheduledAtMillis != null) {
             val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
@@ -75,10 +77,11 @@ class TaskRepository(private val taskDao: TaskDao) {
         return taskDao.setTopPriorityIfAllowed(id, isTop) > 0
     }
 
-    suspend fun updateTask(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?): Boolean {
+    suspend fun updateTask(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Boolean {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return false
-        return taskDao.updateDetails(taskId, cleanTitle, priority, scheduledAtMillis, reminderAtMillis) > 0
+        if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return false
+        return taskDao.updateDetails(taskId, cleanTitle, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes) > 0
     }
 
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
