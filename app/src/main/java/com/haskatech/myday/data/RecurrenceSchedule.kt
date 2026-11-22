@@ -1,7 +1,6 @@
 package com.haskatech.myday.data
 
 import java.util.Calendar
-import java.util.TimeZone
 
 /**
  * Calendar-based recurrence arithmetic in the device's current timezone.
