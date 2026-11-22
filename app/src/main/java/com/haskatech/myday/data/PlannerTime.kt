@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.Instant
 
 /**
  * Planning timestamps are stored as epoch milliseconds (an absolute instant).
@@ -20,4 +21,9 @@ object PlannerTime {
 
     fun startOfDayMillis(date: LocalDate): Long =
         date.atStartOfDay(zoneId()).toInstant().toEpochMilli()
+
+    fun utcOffsetLabel(atMillis: Long = System.currentTimeMillis()): String {
+        val offset = zoneId().rules.getOffset(Instant.ofEpochMilli(atMillis)).id
+        return if (offset == "Z") "UTC" else "UTC$offset"
+    }
 }
