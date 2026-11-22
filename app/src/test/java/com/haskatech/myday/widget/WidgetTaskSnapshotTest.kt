@@ -11,7 +11,7 @@ class WidgetTaskSnapshotTest {
  @Test fun dateAndSelectionUseDeviceTimezone() {
   val now=Instant.parse("2026-11-22T20:00:00Z").toEpochMilli()
   val localToday=Instant.parse("2026-11-22T19:00:00Z").toEpochMilli()
-  val tomorrow=Instant.parse("2026-11-22T20:30:00Z").toEpochMilli()
+  val tomorrow=Instant.parse("2026-11-23T20:30:00Z").toEpochMilli()
   val s=WidgetTaskSnapshot.create(listOf(TaskEntity(id=1,title="Today",scheduledAtMillis=localToday),TaskEntity(id=2,title="Tomorrow",scheduledAtMillis=tomorrow)),now,zone)
   assertEquals(LocalDate.of(2026,11,23),s.date); assertEquals(listOf(1L),s.todayTasks.map{it.id}); assertEquals(WidgetEmptyState.HAS_TASKS,s.emptyState)
  }
