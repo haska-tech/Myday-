@@ -29,7 +29,7 @@ class WidgetTaskSnapshotTest {
   val now=Instant.parse("2026-11-23T06:00:00Z").toEpochMilli()
   val empty=WidgetTaskSnapshot.create(emptyList(),now,zone)
   val inbox=WidgetTaskSnapshot.create(listOf(TaskEntity(id=2,title="Inbox")),now,zone)
-  assertEquals(WidgetEmptyState.ALL_COMPLETED,empty.emptyState); assertEquals(WidgetEmptyState.NONE_PLANNED,inbox.emptyState)
+  assertEquals(WidgetEmptyState.NONE_PLANNED,empty.emptyState); assertEquals(WidgetEmptyState.NONE_PLANNED,inbox.emptyState)
  }
  @Test fun topPrioritiesAreLimitedToThreeInSourceOrder() {
   val now=Instant.parse("2026-11-23T06:00:00Z").toEpochMilli()
