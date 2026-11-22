@@ -4,6 +4,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+
+val stableDebugStorePath = System.getenv("MYDAY_KEYSTORE_PATH")
+
 android {
     namespace = "com.haskatech.myday"
     compileSdk = 35
@@ -14,6 +17,28 @@ android {
         versionCode = 1
         versionName = "0.2.0"
     }
+
+    // GitHub Actions supplies a persistent keystore for development APKs.
+    // Local builds without these environment variables retain normal Android debug signing.
+    if (!stableDebugStorePath.isNullOrBlank()) {
+        val stableStorePassword = System.getenv("MYDAY_KEYSTORE_PASSWORD")
+            ?: error("MYDAY_KEYSTORE_PASSWORD is required when MYDAY_KEYSTORE_PATH is set")
+        val stableKeyAlias = System.getenv("MYDAY_KEY_ALIAS")
+            ?: error("MYDAY_KEY_ALIAS is required when MYDAY_KEYSTORE_PATH is set")
+        val stableKeyPassword = System.getenv("MYDAY_KEY_PASSWORD")
+            ?: error("MYDAY_KEY_PASSWORD is required when MYDAY_KEYSTORE_PATH is set")
+
+        signingConfigs.create("stableDebug") {
+            storeFile = file(stableDebugStorePath)
+            storePassword = stableStorePassword
+            keyAlias = stableKeyAlias
+            keyPassword = stableKeyPassword
+        }
+        buildTypes.getByName("debug") {
+            signingConfig = signingConfigs.getByName("stableDebug")
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -21,6 +46,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
+
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.core:core-ktx:1.15.0")
