@@ -290,11 +290,14 @@ private fun TasksScreen(
     modifier: Modifier = Modifier
 ) {
     var taskFilter by remember { mutableStateOf("All") }
-    val filteredTasks = when (taskFilter) {
-        "Active" -> tasks.filterNot { it.isCompleted }
-        "Completed" -> tasks.filter { it.isCompleted }
-        else -> tasks
-    }
+    val filteredTasks = com.haskatech.myday.data.TaskGrouping.filterByStatus(
+        tasks,
+        when (taskFilter) {
+            "Active" -> com.haskatech.myday.data.TaskStatusFilter.ACTIVE
+            "Completed" -> com.haskatech.myday.data.TaskStatusFilter.COMPLETED
+            else -> com.haskatech.myday.data.TaskStatusFilter.ALL
+        }
+    )
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
