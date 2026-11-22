@@ -79,6 +79,48 @@ class TaskRepository(private val taskDao: TaskDao) {
         return templates.mapIndexed { index, item -> item.copy(id = ids[index]) }
     }
 
+    /** Replenishes the rolling horizon when the app opens, even if no occurrence was completed. */
+    suspend fun refreshRecurringOccurrences(): List<TaskEntity> {
+        val grouped = linkedMapOf<String, MutableList<TaskEntity>>()
+        taskDao.getRecurringTasks().forEach { task ->
+            val seriesId = task.recurrenceSeriesId ?: UUID.randomUUID().toString().also {
+                taskDao.setRecurrenceSeriesId(task.id, it)
+            }
+            grouped.getOrPut(seriesId) { mutableListOf() }.add(task.copy(recurrenceSeriesId = seriesId))
+        }
+        return grouped.values.flatMap { series ->
+            val first = series.minByOrNull { it.scheduledAtMillis ?: Long.MAX_VALUE } ?: return@flatMap emptyList()
+            ensureOccurrences(first)
+        }
+    }
+
+    private suspend fun ensureOccurrences(task: TaskEntity): List<TaskEntity> {
+        val seriesId = task.recurrenceSeriesId ?: return emptyList()
+        val series = taskDao.getRecurrenceSeries(seriesId)
+        val anchor = series.mapNotNull { it.scheduledAtMillis }.minOrNull() ?: return emptyList()
+        val latest = series.mapNotNull { it.scheduledAtMillis }.maxOrNull() ?: return emptyList()
+        val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
+        val existing = series.mapNotNull { it.scheduledAtMillis }.toHashSet()
+        val dates = RecurrenceSchedule.datesThrough(anchor, task.recurrenceRule, horizon)
+            .filter { it > latest && it !in existing }
+        if (dates.isEmpty()) return emptyList()
+        val template = series.firstOrNull() ?: task
+        val reminderOffset = template.scheduledAtMillis?.let { start -> template.reminderAtMillis?.minus(start) }
+        val rows = dates.map { date ->
+            template.copy(
+                id = 0,
+                scheduledAtMillis = date,
+                reminderAtMillis = reminderOffset?.let { date + it },
+                recurrenceSeriesId = seriesId,
+                isCompleted = false,
+                isTopPriority = false,
+                timeSpentMillis = 0L,
+                createdAtMillis = System.currentTimeMillis()
+            )
+        }
+        val ids = taskDao.insertAll(rows)
+        return rows.mapIndexed { index, row -> row.copy(id = ids[index]) }
+    }
     suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean =
         taskDao.setTopPriorityIfAllowed(id, isTop) > 0
 
@@ -94,26 +136,27 @@ class TaskRepository(private val taskDao: TaskDao) {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty() || (plannedDurationMinutes != null && plannedDurationMinutes <= 0)) return emptyList()
 
-        val targets = if (applyToSeries && task.recurrenceSeriesId != null) {
-            taskDao.getRecurrenceSeries(task.recurrenceSeriesId)
-                .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (task.scheduledAtMillis ?: Long.MIN_VALUE) && (!it.isCompleted || it.id == task.id) }
-        } else listOf(task)
         val oldStart = task.scheduledAtMillis
         val newStart = scheduledAtMillis
-        val zone = ZoneId.systemDefault()
-        val oldLocal = oldStart?.let { Instant.ofEpochMilli(it).atZone(zone) }
-        val newLocal = newStart?.let { Instant.ofEpochMilli(it).atZone(zone) }
-        val dayShift = if (applyToSeries && oldLocal != null && newLocal != null)
-            java.time.temporal.ChronoUnit.DAYS.between(oldLocal.toLocalDate(), newLocal.toLocalDate()) else 0L
+        val reanchorSeries = applyToSeries && oldStart != null && newStart != null && oldStart != newStart
+        val targets = if (applyToSeries && task.recurrenceSeriesId != null) {
+            taskDao.getRecurrenceSeries(task.recurrenceSeriesId)
+                .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (oldStart ?: Long.MIN_VALUE) && (!it.isCompleted || it.id == task.id) }
+        } else listOf(task)
         val reminderOffset = if (newStart != null && reminderAtMillis != null) reminderAtMillis - newStart else null
-
         val updated = mutableListOf<TaskEntity>()
+
         for (target in targets) {
-            val targetStart = if (applyToSeries && target.id != task.id && target.scheduledAtMillis != null && newLocal != null) {
-                val targetLocal = Instant.ofEpochMilli(target.scheduledAtMillis).atZone(zone)
-                targetLocal.toLocalDate().plusDays(dayShift).atTime(newLocal.toLocalTime()).atZone(zone)
-                    .toInstant().toEpochMilli()
-            } else newStart
+            val targetStart = when {
+                target.id == task.id -> newStart
+                !applyToSeries -> newStart
+                !reanchorSeries -> target.scheduledAtMillis
+                oldStart != null && newStart != null && target.scheduledAtMillis != null -> {
+                    val steps = RecurrenceSchedule.stepsBetween(oldStart, target.scheduledAtMillis, task.recurrenceRule)
+                    steps?.let { RecurrenceSchedule.occurrenceAt(newStart, task.recurrenceRule, it) }
+                }
+                else -> target.scheduledAtMillis
+            }
             val targetReminder = targetStart?.let { start -> reminderOffset?.let { start + it } }
             val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes)
             if (changed > 0) updated += target.copy(
@@ -126,7 +169,6 @@ class TaskRepository(private val taskDao: TaskDao) {
         }
         return updated
     }
-
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
 
     companion object {

@@ -18,6 +18,17 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TaskRepository(database.taskDao())
     private val timeTrackingRepository = TaskTimeTrackingRepository(database)
 
+    init {
+        viewModelScope.launch {
+            repository.refreshRecurringOccurrences().forEach { generated ->
+                generated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
+                    ReminderScheduler.schedule(getApplication(), generated.id, generated.title, it)
+                }
+            }
+            MyDayWidgetProvider.requestRefresh(getApplication())
+        }
+    }
+
     val activeTracking = timeTrackingRepository.activeTracking.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), null
     )
