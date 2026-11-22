@@ -28,13 +28,13 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
     )
 
-    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None") {
+    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
 
-            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule)
+            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes)
             createdTasks.orEmpty().forEach { task ->
                 val reminder = task.reminderAtMillis
                 if (reminder != null && reminder > System.currentTimeMillis()) {
@@ -45,7 +45,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?) {
+    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (!com.haskatech.myday.data.TaskEditRules.isValid(
@@ -53,7 +53,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
                     task.scheduledAtMillis, task.reminderAtMillis
                 )) return@launch
             ReminderScheduler.cancel(getApplication(), task.id)
-            if (repository.updateTask(task.id, title, priority, scheduledAtMillis, reminderAtMillis)) {
+            if (repository.updateTask(task.id, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes)) {
                 reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
                     ReminderScheduler.schedule(getApplication(), task.id, title.trim(), it)
                 }
