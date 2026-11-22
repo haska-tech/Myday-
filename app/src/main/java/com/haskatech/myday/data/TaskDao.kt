@@ -1,68 +1,51 @@
 package com.haskatech.myday.data
-
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY isCompleted ASC, isTopPriority DESC, CASE priority WHEN 'High' THEN 0 WHEN 'Normal' THEN 1 ELSE 2 END, CASE WHEN scheduledAtMillis IS NULL THEN 1 ELSE 0 END, scheduledAtMillis ASC, createdAtMillis DESC")
-    fun observeTasks(): Flow<List<TaskEntity>>
-
-    @Query("""
-        UPDATE tasks
-        SET isTopPriority = :isTop
-        WHERE id = :taskId
-          AND (
-            :isTop = 0
-            OR (
-              isCompleted = 0
-              AND (
-                SELECT COUNT(*) FROM tasks
-                WHERE isTopPriority = 1 AND isCompleted = 0 AND id != :taskId
-              ) < 3
-            )
-          )
-    """)
-    suspend fun setTopPriorityIfAllowed(taskId: Long, isTop: Boolean): Int
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(task: TaskEntity): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(tasks: List<TaskEntity>): List<Long>
-
-    @Query("SELECT * FROM tasks WHERE recurrenceSeriesId = :seriesId ORDER BY scheduledAtMillis ASC")
-    suspend fun getRecurrenceSeries(seriesId: String): List<TaskEntity>
-
-    @Query("SELECT * FROM tasks WHERE recurrenceRule != 'None' AND scheduledAtMillis IS NOT NULL ORDER BY scheduledAtMillis ASC")
-    suspend fun getRecurringTasks(): List<TaskEntity>
-
-    @Query("UPDATE tasks SET recurrenceSeriesId = :seriesId WHERE id = :taskId")
-    suspend fun setRecurrenceSeriesId(taskId: Long, seriesId: String)
-
-    @Query("UPDATE tasks SET isCompleted = :completed, isTopPriority = CASE WHEN :completed = 1 THEN 0 ELSE isTopPriority END WHERE id = :taskId")
-    suspend fun setCompleted(taskId: Long, completed: Boolean)
-
-    @Query("UPDATE tasks SET timeSpentMillis = timeSpentMillis + :durationMillis WHERE id = :taskId")
-    suspend fun addTimeSpent(taskId: Long, durationMillis: Long)
-
-    @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE id = :taskId)")
-    suspend fun taskExists(taskId: Long): Boolean
-
-    @Query("""
-        UPDATE tasks
-        SET title = :title,
-            priority = :priority,
-            scheduledAtMillis = :scheduledAtMillis,
-            reminderAtMillis = :reminderAtMillis,
-            plannedDurationMinutes = :plannedDurationMinutes
-        WHERE id = :taskId
-    """)
-    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Int
-
-    @Query("DELETE FROM tasks WHERE id = :taskId")
-    suspend fun delete(taskId: Long)
+ @Query("SELECT * FROM tasks ORDER BY isCompleted ASC, isTopPriority DESC, CASE priority WHEN 'High' THEN 0 WHEN 'Normal' THEN 1 ELSE 2 END, CASE WHEN scheduledAtMillis IS NULL THEN 1 ELSE 0 END, scheduledAtMillis ASC, createdAtMillis DESC")
+ fun observeTasks(): Flow<List<TaskEntity>>
+ @Query("""
+ UPDATE tasks SET isTopPriority = :isTop WHERE id = :taskId AND (
+ :isTop = 0 OR (isCompleted = 0 AND (SELECT COUNT(*) FROM tasks WHERE isTopPriority = 1 AND isCompleted = 0 AND id != :taskId) < 3))
+ """)
+ suspend fun setTopPriorityIfAllowed(taskId: Long, isTop: Boolean): Int
+ @Insert(onConflict = OnConflictStrategy.REPLACE)
+ suspend fun insert(task: TaskEntity): Long
+ @Insert(onConflict = OnConflictStrategy.REPLACE)
+ suspend fun insertAll(tasks: List<TaskEntity>): List<Long>
+ @Query("SELECT * FROM tasks WHERE recurrenceSeriesId = :seriesId ORDER BY scheduledAtMillis ASC")
+ suspend fun getRecurrenceSeries(seriesId: String): List<TaskEntity>
+ @Query("SELECT * FROM tasks WHERE recurrenceRule != 'None' AND scheduledAtMillis IS NOT NULL ORDER BY scheduledAtMillis ASC")
+ suspend fun getRecurringTasks(): List<TaskEntity>
+ @Query("UPDATE tasks SET recurrenceSeriesId = :seriesId WHERE id = :taskId")
+ suspend fun setRecurrenceSeriesId(taskId: Long, seriesId: String)
+ @Query("UPDATE tasks SET isCompleted = :completed, isTopPriority = CASE WHEN :completed = 1 THEN 0 ELSE isTopPriority END WHERE id = :taskId")
+ suspend fun setCompleted(taskId: Long, completed: Boolean)
+ @Query("UPDATE tasks SET timeSpentMillis = timeSpentMillis + :durationMillis WHERE id = :taskId")
+ suspend fun addTimeSpent(taskId: Long, durationMillis: Long)
+ @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE id = :taskId)")
+ suspend fun taskExists(taskId: Long): Boolean
+ @Query("SELECT * FROM tasks WHERE id = :taskId")
+ suspend fun getTaskById(taskId: Long): TaskEntity?
+ @Query("UPDATE tasks SET isCompleted = 1, isTopPriority = 0 WHERE id = :taskId AND isCompleted = 0")
+ suspend fun markCompletedIfActive(taskId: Long): Int
+ @Transaction
+ suspend fun completeIfActive(taskId: Long): TaskEntity? {
+  val current = getTaskById(taskId) ?: return null
+  if (current.isCompleted) return null
+  return current.takeIf { markCompletedIfActive(taskId) == 1 }
+ }
+ @Query("""
+ UPDATE tasks SET title = :title, priority = :priority, scheduledAtMillis = :scheduledAtMillis,
+ reminderAtMillis = :reminderAtMillis, plannedDurationMinutes = :plannedDurationMinutes
+ WHERE id = :taskId
+ """)
+ suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Int
+ @Query("DELETE FROM tasks WHERE id = :taskId")
+ suspend fun delete(taskId: Long)
 }

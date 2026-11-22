@@ -48,8 +48,17 @@ class TaskRepository(private val taskDao: TaskDao) {
 
     suspend fun setCompleted(task: TaskEntity, completed: Boolean): List<TaskEntity> {
         taskDao.setCompleted(task.id, completed)
-        if (!completed || task.recurrenceRule == "None" || task.scheduledAtMillis == null) return emptyList()
+        if (!completed) return emptyList()
+        return generateNextOccurrences(task)
+    }
 
+    suspend fun completeFromWidget(taskId: Long): List<TaskEntity>? {
+        val task = taskDao.completeIfActive(taskId) ?: return null
+        return generateNextOccurrences(task)
+    }
+
+    private suspend fun generateNextOccurrences(task: TaskEntity): List<TaskEntity> {
+        if (task.recurrenceRule == "None" || task.scheduledAtMillis == null) return emptyList()
         val seriesId = task.recurrenceSeriesId ?: UUID.randomUUID().toString().also {
             taskDao.setRecurrenceSeriesId(task.id, it)
         }
@@ -61,19 +70,12 @@ class TaskRepository(private val taskDao: TaskDao) {
         val newDates = RecurrenceSchedule.datesThrough(anchor, task.recurrenceRule, horizon)
             .filter { it > latestScheduled && it !in existingDates }
         if (newDates.isEmpty()) return emptyList()
-
         val reminderOffset = task.reminderAtMillis?.minus(task.scheduledAtMillis)
         val templates = newDates.map { date ->
-            task.copy(
-                id = 0,
-                scheduledAtMillis = date,
+            task.copy(id = 0, scheduledAtMillis = date,
                 reminderAtMillis = reminderOffset?.let { date + it },
-                recurrenceSeriesId = seriesId,
-                isCompleted = false,
-                isTopPriority = false,
-                timeSpentMillis = 0L,
-                createdAtMillis = System.currentTimeMillis()
-            )
+                recurrenceSeriesId = seriesId, isCompleted = false, isTopPriority = false,
+                timeSpentMillis = 0L, createdAtMillis = System.currentTimeMillis())
         }
         val ids = taskDao.insertAll(templates)
         return templates.mapIndexed { index, item -> item.copy(id = ids[index]) }

@@ -11,10 +11,13 @@
         android:layout_height="wrap_content" android:paddingTop="4dp" android:paddingBottom="3dp"
         android:text="TOP PRIORITIES" android:textColor="#638C22" android:textSize="9sp"
         android:textStyle="bold" />
-    <TextView android:id="@+id/widget_tasks" android:layout_width="match_parent"
-        android:layout_height="0dp" android:layout_weight="1" android:gravity="top"
-        android:maxLines="3" android:ellipsize="end" android:text="Your priorities"
-        android:textColor="#14233B" android:textSize="12sp" />
+    <LinearLayout android:id="@+id/widget_task_list" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/widget_tasks" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:gravity="top" android:maxLines="3"
+            android:ellipsize="end" android:text="Your tasks appear here."
+            android:textColor="#14233B" android:textSize="12sp" />
+    </LinearLayout>
     <TextView android:id="@+id/widget_refresh" android:layout_width="wrap_content"
         android:layout_height="wrap_content" android:text="↻ Refresh" android:textColor="#4C8C24"
         android:textSize="10sp" android:textStyle="bold" />

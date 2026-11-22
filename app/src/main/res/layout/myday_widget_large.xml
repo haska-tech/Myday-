@@ -17,10 +17,13 @@
     <TextView android:id="@+id/widget_priorities" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingBottom="6dp" android:text="TOP PRIORITIES"
         android:textColor="#4C8C24" android:textSize="12sp" android:textStyle="bold" />
-    <TextView android:id="@+id/widget_tasks" android:layout_width="match_parent"
-        android:layout_height="0dp" android:layout_weight="1" android:gravity="top"
-        android:maxLines="8" android:ellipsize="end" android:text="Your tasks appear here."
-        android:textColor="#14233B" android:textSize="14sp" />
+    <LinearLayout android:id="@+id/widget_task_list" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/widget_tasks" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:gravity="top" android:maxLines="8"
+            android:ellipsize="end" android:text="Your tasks appear here."
+            android:textColor="#14233B" android:textSize="12sp" />
+    </LinearLayout>
     <TextView android:id="@+id/widget_footer" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingTop="8dp" android:text="OPEN MYDAY  ·  PLAN WITH PURPOSE"
         android:textColor="#687386" android:textSize="10sp" />

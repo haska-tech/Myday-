@@ -5,15 +5,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 enum class WidgetEmptyState { HAS_TASKS, NONE_PLANNED, ALL_COMPLETED }
-/** Immutable, date-aware view of Room tasks for one widget refresh. */
 data class WidgetTaskSnapshot(
- val generatedAtMillis: Long,
- val zoneId: ZoneId,
- val date: LocalDate,
- val topPriorities: List<TaskEntity>,
- val todayTasks: List<TaskEntity>,
- val emptyState: WidgetEmptyState
+ val generatedAtMillis: Long, val zoneId: ZoneId, val date: LocalDate,
+ val topPriorities: List<TaskEntity>, val todayTasks: List<TaskEntity>, val emptyState: WidgetEmptyState
 ) {
+ fun visibleTasks(): List<TaskEntity> = topPriorities + todayTasks.filterNot { it.isTopPriority }.take((6-topPriorities.size).coerceAtLeast(0))
  companion object {
   fun create(tasks: List<TaskEntity>, nowMillis: Long = System.currentTimeMillis(), zone: ZoneId = PlannerTime.zoneId()): WidgetTaskSnapshot {
    val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
@@ -25,5 +21,11 @@ data class WidgetTaskSnapshot(
    val state = when { visibleCount > 0 -> WidgetEmptyState.HAS_TASKS; tasks.isNotEmpty() && tasks.all { it.isCompleted } -> WidgetEmptyState.ALL_COMPLETED; else -> WidgetEmptyState.NONE_PLANNED }
    return WidgetTaskSnapshot(nowMillis,zone,today,priorities,todayTasks,state)
   }
+ }
+}
+object WidgetTaskCompletionRules {
+ fun pendingIntentUri(taskId: Long): String {
+  require(taskId > 0L) { "Task ID must be positive" }
+  return "myday://widget/complete/$taskId"
  }
 }
