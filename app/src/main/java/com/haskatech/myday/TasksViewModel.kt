@@ -48,9 +48,10 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            if (scheduledAtMillis != null && scheduledAtMillis <= now && scheduledAtMillis != task.scheduledAtMillis) return@launch
-            if (reminderAtMillis != null && (scheduledAtMillis == null ||
-                (reminderAtMillis <= now && reminderAtMillis != task.reminderAtMillis) || reminderAtMillis > scheduledAtMillis)) return@launch
+            if (!com.haskatech.myday.data.TaskEditRules.isValid(
+                    title, scheduledAtMillis, reminderAtMillis, now,
+                    task.scheduledAtMillis, task.reminderAtMillis
+                )) return@launch
             ReminderScheduler.cancel(getApplication(), task.id)
             if (repository.updateTask(task.id, title, priority, scheduledAtMillis, reminderAtMillis)) {
                 reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
