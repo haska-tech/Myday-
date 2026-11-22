@@ -1,45 +1,74 @@
 package com.haskatech.myday.data
 
-import java.util.Calendar
+import java.util.UUID
 
 class TaskRepository(private val taskDao: TaskDao) {
     val tasks = taskDao.observeTasks()
 
-    suspend fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None"): Long? {
+    suspend fun addTask(
+        title: String,
+        priority: String = "Normal",
+        scheduledAtMillis: Long? = null,
+        reminderAtMillis: Long? = null,
+        recurrenceRule: String = "None"
+    ): List<TaskEntity>? {
         val cleanTitle = title.trim()
-        if (cleanTitle.isNotEmpty()) return taskDao.insert(
-            TaskEntity(title = cleanTitle, priority = priority, scheduledAtMillis = scheduledAtMillis, reminderAtMillis = reminderAtMillis, recurrenceRule = recurrenceRule)
+        if (cleanTitle.isEmpty()) return null
+
+        val seriesId = if (recurrenceRule != "None" && scheduledAtMillis != null) UUID.randomUUID().toString() else null
+        val first = TaskEntity(
+            title = cleanTitle,
+            priority = priority,
+            scheduledAtMillis = scheduledAtMillis,
+            reminderAtMillis = reminderAtMillis,
+            recurrenceRule = recurrenceRule,
+            recurrenceSeriesId = seriesId
         )
-        return null
+        val occurrences = if (seriesId != null && scheduledAtMillis != null) {
+            val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
+            RecurrenceSchedule.datesThrough(scheduledAtMillis, recurrenceRule, horizon).map { date ->
+                first.copy(
+                    id = 0,
+                    scheduledAtMillis = date,
+                    reminderAtMillis = reminderAtMillis?.let { date + (it - scheduledAtMillis) },
+                    createdAtMillis = System.currentTimeMillis()
+                )
+            }
+        } else emptyList()
+
+        val inserted = listOf(first) + occurrences
+        val ids = taskDao.insertAll(inserted)
+        return inserted.mapIndexed { index, task -> task.copy(id = ids[index]) }
     }
 
-    suspend fun setCompleted(task: TaskEntity, completed: Boolean): TaskEntity? {
+    suspend fun setCompleted(task: TaskEntity, completed: Boolean): List<TaskEntity> {
         taskDao.setCompleted(task.id, completed)
-        if (!completed || task.recurrenceRule == "None" || task.scheduledAtMillis == null) return null
+        if (!completed || task.recurrenceRule == "None" || task.scheduledAtMillis == null) return emptyList()
 
-        val nextDate = Calendar.getInstance().apply {
-            timeInMillis = task.scheduledAtMillis
-            when (task.recurrenceRule) {
-                "Daily" -> add(Calendar.DAY_OF_YEAR, 1)
-                "Weekly" -> add(Calendar.WEEK_OF_YEAR, 1)
-                "Monthly" -> add(Calendar.MONTH, 1)
-                else -> return null
-            }
-        }.timeInMillis
-        val reminderOffset = if (task.reminderAtMillis != null && task.scheduledAtMillis != null) {
-            task.reminderAtMillis - task.scheduledAtMillis
-        } else null
-        val nextTask = task.copy(
-            id = 0,
-            scheduledAtMillis = nextDate,
-            reminderAtMillis = reminderOffset?.let { nextDate + it },
-            isCompleted = false,
-            isTopPriority = false,
-            timeSpentMillis = 0L,
-            createdAtMillis = System.currentTimeMillis()
-        )
-        val newId = taskDao.insert(nextTask)
-        return nextTask.copy(id = newId)
+        val seriesId = task.recurrenceSeriesId ?: UUID.randomUUID().toString().also {
+            taskDao.setRecurrenceSeriesId(task.id, it)
+        }
+        val series = taskDao.getRecurrenceSeries(seriesId)
+        val latestScheduled = series.mapNotNull { it.scheduledAtMillis }.maxOrNull() ?: task.scheduledAtMillis
+        val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
+        val newDates = RecurrenceSchedule.datesThrough(latestScheduled, task.recurrenceRule, horizon)
+        if (newDates.isEmpty()) return emptyList()
+
+        val reminderOffset = task.reminderAtMillis?.minus(task.scheduledAtMillis)
+        val templates = newDates.map { date ->
+            task.copy(
+                id = 0,
+                scheduledAtMillis = date,
+                reminderAtMillis = reminderOffset?.let { date + it },
+                recurrenceSeriesId = seriesId,
+                isCompleted = false,
+                isTopPriority = false,
+                timeSpentMillis = 0L,
+                createdAtMillis = System.currentTimeMillis()
+            )
+        }
+        val ids = taskDao.insertAll(templates)
+        return templates.mapIndexed { index, item -> item.copy(id = ids[index]) }
     }
 
     suspend fun setTopPriority(id: Long, isTop: Boolean): Boolean {
@@ -47,4 +76,8 @@ class TaskRepository(private val taskDao: TaskDao) {
     }
 
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
+
+    companion object {
+        const val ROLLING_WINDOW_MILLIS = 90L * 24L * 60L * 60L * 1000L
+    }
 }

@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [TaskEntity::class, TimeTrackingSessionEntity::class, TimeTrackingEntryEntity::class], version = 6, exportSchema = false)
+@Database(entities = [TaskEntity::class, TimeTrackingSessionEntity::class, TimeTrackingEntryEntity::class], version = 7, exportSchema = false)
 abstract class MyDayDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun timeTrackingDao(): TimeTrackingDao
@@ -55,6 +55,11 @@ abstract class MyDayDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_time_tracking_entry_startedAtMillis ON time_tracking_entry(startedAtMillis)")
             }
         }
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE tasks ADD COLUMN recurrenceSeriesId TEXT")
+            }
+        }
 
         @Volatile private var INSTANCE: MyDayDatabase? = null
 
@@ -64,7 +69,10 @@ abstract class MyDayDatabase : RoomDatabase() {
                     context.applicationContext,
                     MyDayDatabase::class.java,
                     "myday_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { INSTANCE = it }
+                ).addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7
+                ).build().also { INSTANCE = it }
             }
     }
 }

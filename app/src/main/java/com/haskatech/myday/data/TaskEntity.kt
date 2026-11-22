@@ -16,5 +16,6 @@ data class TaskEntity(
     val isTopPriority: Boolean = false,
     val isCompleted: Boolean = false,
     val createdAtMillis: Long = System.currentTimeMillis(),
-    @ColumnInfo(defaultValue = "0") val timeSpentMillis: Long = 0L
+    @ColumnInfo(defaultValue = "0") val timeSpentMillis: Long = 0L,
+    val recurrenceSeriesId: String? = null
 )

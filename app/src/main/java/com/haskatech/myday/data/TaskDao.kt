@@ -31,6 +31,15 @@ interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: TaskEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(tasks: List<TaskEntity>): List<Long>
+
+    @Query("SELECT * FROM tasks WHERE recurrenceSeriesId = :seriesId ORDER BY scheduledAtMillis ASC")
+    suspend fun getRecurrenceSeries(seriesId: String): List<TaskEntity>
+
+    @Query("UPDATE tasks SET recurrenceSeriesId = :seriesId WHERE id = :taskId")
+    suspend fun setRecurrenceSeriesId(taskId: Long, seriesId: String)
+
     @Query("UPDATE tasks SET isCompleted = :completed, isTopPriority = CASE WHEN :completed = 1 THEN 0 ELSE isTopPriority END WHERE id = :taskId")
     suspend fun setCompleted(taskId: Long, completed: Boolean)
 

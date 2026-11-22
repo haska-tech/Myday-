@@ -19,21 +19,13 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     private val timeTrackingRepository = TaskTimeTrackingRepository(database)
 
     val activeTracking = timeTrackingRepository.activeTracking.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        null
+        viewModelScope, SharingStarted.WhileSubscribed(5_000), null
     )
-
     val timeTrackingEntries = timeTrackingRepository.entries.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        emptyList()
+        viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
     )
-
     val tasks = repository.tasks.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        emptyList()
+        viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
     )
 
     fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None") {
@@ -42,27 +34,31 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
 
-            val taskId = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule)
-            if (taskId != null && reminderAtMillis != null && reminderAtMillis > System.currentTimeMillis()) {
-                ReminderScheduler.schedule(getApplication(), taskId, title.trim(), reminderAtMillis)
+            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule)
+            createdTasks.orEmpty().forEach { task ->
+                val reminder = task.reminderAtMillis
+                if (reminder != null && reminder > System.currentTimeMillis()) {
+                    ReminderScheduler.schedule(getApplication(), task.id, task.title, reminder)
+                }
             }
             MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 
     fun startTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.start(task.id) } }
-
     fun pauseTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.pause(task.id) } }
-
     fun stopTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.stop(task.id) } }
 
     fun setCompleted(task: TaskEntity, completed: Boolean) {
         viewModelScope.launch {
             if (completed) timeTrackingRepository.stop(task.id)
-            val nextTask = repository.setCompleted(task, completed)
+            val generatedTasks = repository.setCompleted(task, completed)
             if (completed) ReminderScheduler.cancel(getApplication(), task.id)
-            if (nextTask?.reminderAtMillis != null && nextTask.reminderAtMillis > System.currentTimeMillis()) {
-                ReminderScheduler.schedule(getApplication(), nextTask.id, nextTask.title, nextTask.reminderAtMillis)
+            generatedTasks.forEach { generated ->
+                val reminder = generated.reminderAtMillis
+                if (reminder != null && reminder > System.currentTimeMillis()) {
+                    ReminderScheduler.schedule(getApplication(), generated.id, generated.title, reminder)
+                }
             }
             MyDayWidgetProvider.requestRefresh(getApplication())
         }
