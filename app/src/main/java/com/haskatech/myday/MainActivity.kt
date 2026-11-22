@@ -542,7 +542,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
 @Composable
 private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
-    val zone = remember { java.time.ZoneId.systemDefault() }
+    val zone = java.time.ZoneId.systemDefault()
     var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
     var view by remember { mutableStateOf("Week") }
     val scheduled = tasks.filter { it.scheduledAtMillis != null }
@@ -714,7 +714,7 @@ private fun WeeklyTimetable(
             Row(Modifier.horizontalScroll(horizontalState)) {
                 Column {
                     Box(Modifier.width(54.dp).height(58.dp), contentAlignment = Alignment.Center) {
-                        Text("GMT+3", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(PlannerTime.utcOffsetLabel(), color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                     (6..22).forEach { hour ->
                         Box(
@@ -812,7 +812,7 @@ private fun WeeklyTimetable(
     if (dates.all { tasksByDate[it].orEmpty().isEmpty() }) {
         Text("No tasks scheduled this week yet.", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
     } else {
-        Text("Tasks appear in their scheduled hour. Times use Kampala time (UTC+3).", color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+        Text("Tasks appear in their scheduled hour. Times use your device timezone.", color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
