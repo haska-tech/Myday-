@@ -590,7 +590,7 @@ private fun AddTaskDialog(
                 }
                 if (scheduledAt != null) {
                     Text("ESTIMATED DURATION", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         listOf<Int?>(null, 15, 30, 45, 60, 90, 120).forEach { minutes ->
                             FilterChip(
                                 selected = plannedDurationMinutes == minutes,
