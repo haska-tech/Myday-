@@ -18,6 +18,18 @@ class TaskGroupingTest {
         assertEquals(tasks.size, unscheduled.size + scheduled.size)
     }
 
+    @Test fun statusFiltersKeepScheduledAndUnscheduledTasksInTheirOriginalGroups() {
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Active unscheduled"),
+            TaskEntity(id = 2, title = "Active scheduled", scheduledAtMillis = 1_800_000_000_000L),
+            TaskEntity(id = 3, title = "Completed unscheduled", isCompleted = true)
+        )
+
+        assertEquals(listOf(1L, 2L, 3L), TaskGrouping.filterByStatus(tasks, TaskStatusFilter.ALL).map { it.id })
+        assertEquals(listOf(1L, 2L), TaskGrouping.filterByStatus(tasks, TaskStatusFilter.ACTIVE).map { it.id })
+        assertEquals(listOf(3L), TaskGrouping.filterByStatus(tasks, TaskStatusFilter.COMPLETED).map { it.id })
+    }
+
     @Test fun emptyTaskListProducesTwoEmptySections() {
         val (unscheduled, scheduled) = TaskGrouping.partition(emptyList())
         assertEquals(emptyList<TaskEntity>(), unscheduled)
