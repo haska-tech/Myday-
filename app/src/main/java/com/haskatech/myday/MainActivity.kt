@@ -717,7 +717,7 @@ private fun WeeklyTimetable(
                     Box(Modifier.width(54.dp).height(58.dp), contentAlignment = Alignment.Center) {
                         Text(PlannerTime.utcOffsetLabel(), color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
-                    (6..22).forEach { hour ->
+                    PlannerTime.dayHours.forEach { hour ->
                         Box(
                             Modifier.width(54.dp).height(72.dp).padding(end = 6.dp),
                             contentAlignment = Alignment.TopEnd
@@ -754,7 +754,7 @@ private fun WeeklyTimetable(
                                 Text(date.dayOfMonth.toString(), color = Navy, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
-                        (6..22).forEach { hour ->
+                        PlannerTime.dayHours.forEach { hour ->
                             val hourTasks = tasksByDate[date].orEmpty().filter { task ->
                                 java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).hour == hour
                             }
