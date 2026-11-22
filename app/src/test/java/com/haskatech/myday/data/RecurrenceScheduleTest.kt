@@ -7,10 +7,8 @@ import java.util.Calendar
 import java.util.TimeZone
 
 class RecurrenceScheduleTest {
-    private val timezone = TimeZone.getTimeZone("Africa/Kampala")
-
     private fun date(year: Int, month: Int, day: Int): Long =
-        Calendar.getInstance(timezone).apply {
+        Calendar.getInstance().apply {
             set(year, month - 1, day, 9, 0, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
@@ -45,4 +43,18 @@ class RecurrenceScheduleTest {
         val dates = RecurrenceSchedule.datesThrough(start, "Daily", date(2026, 2, 3))
         assertTrue(dates.all { it > start && it <= date(2026, 2, 3) })
     }
+    @Test fun recurrencePreservesWallClockTimeInDeviceTimezone() {
+        val original = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
+            val start = date(2026, 11, 22)
+            val next = RecurrenceSchedule.nextDate(start, "Daily")!!
+            val calendar = Calendar.getInstance().apply { timeInMillis = next }
+            assertEquals(23, calendar.get(Calendar.DAY_OF_MONTH))
+            assertEquals(9, calendar.get(Calendar.HOUR_OF_DAY))
+        } finally {
+            TimeZone.setDefault(original)
+        }
+    }
+
 }
