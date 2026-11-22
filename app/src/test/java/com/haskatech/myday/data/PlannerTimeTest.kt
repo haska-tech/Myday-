@@ -20,6 +20,11 @@ class PlannerTimeTest {
         assertEquals(null, task.plannedDurationMinutes)
     }
 
+    @Test fun offsetLabelReflectsDeviceTimezone() {
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
+        assertEquals("UTC+05:30", PlannerTime.utcOffsetLabel())
+    }
+
     @Test fun planningZoneFollowsDeviceTimezone() {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
         assertEquals(ZoneId.of("Asia/Kolkata"), PlannerTime.zoneId())
