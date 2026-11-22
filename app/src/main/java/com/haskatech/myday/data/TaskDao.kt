@@ -49,6 +49,16 @@ interface TaskDao {
     @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE id = :taskId)")
     suspend fun taskExists(taskId: Long): Boolean
 
+    @Query("""
+        UPDATE tasks
+        SET title = :title,
+            priority = :priority,
+            scheduledAtMillis = :scheduledAtMillis,
+            reminderAtMillis = :reminderAtMillis
+        WHERE id = :taskId
+    """)
+    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?): Int
+
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
 }
