@@ -35,7 +35,7 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Configure persistent development signing
+      - name: Configure and verify permanent development signing key
         if: github.ref == 'refs/heads/development'
         env:
           MYDAY_KEYSTORE_BASE64: ${{ secrets.MYDAY_KEYSTORE_BASE64 }}
@@ -43,6 +43,7 @@ jobs:
           MYDAY_KEY_ALIAS: ${{ secrets.MYDAY_KEY_ALIAS }}
           MYDAY_KEY_PASSWORD: ${{ secrets.MYDAY_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
           test -n "$MYDAY_KEYSTORE_BASE64" || (echo "Missing MYDAY_KEYSTORE_BASE64 repository secret" && exit 1)
           test -n "$MYDAY_KEYSTORE_PASSWORD" || (echo "Missing MYDAY_KEYSTORE_PASSWORD repository secret" && exit 1)
           test -n "$MYDAY_KEY_ALIAS" || (echo "Missing MYDAY_KEY_ALIAS repository secret" && exit 1)
@@ -51,12 +52,34 @@ jobs:
           mkdir -p "$signing_dir"
           printf '%s' "$MYDAY_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/myday-debug.keystore"
           test -s "$signing_dir/myday-debug.keystore"
+          # Pin the exact certificate used by the currently installed #96 APK.
+          expected="68ab247461a5694acada2b73efd44bc84eb9c94ba78630e1ff85af19819a5bbf"
+          actual="$(keytool -list -v -keystore "$signing_dir/myday-debug.keystore" -storepass "$MYDAY_KEYSTORE_PASSWORD" -alias "$MYDAY_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = "$expected" || { echo "STOP: signing certificate does not match installed #96 APK"; exit 1; }
+          echo "Verified permanent signing certificate matches installed #96 APK."
           echo "MYDAY_KEYSTORE_PATH=$signing_dir/myday-debug.keystore" >> "$GITHUB_ENV"
           echo "MYDAY_KEYSTORE_PASSWORD=$MYDAY_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "MYDAY_KEY_ALIAS=$MYDAY_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "MYDAY_KEY_PASSWORD=$MYDAY_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Run unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug
+      - name: Verify APK signature, application ID and version
+        if: github.ref == 'refs/heads/development'
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/apk-certificate.txt"
+          expected="68ab247461a5694acada2b73efd44bc84eb9c94ba78630e1ff85af19819a5bbf"
+          actual="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}' "$RUNNER_TEMP/apk-certificate.txt" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = "$expected" || { echo "STOP: built APK certificate mismatch"; exit 1; }
+          badging="$("$aapt" dump badging "$apk")"
+          package="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+          version_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p")"
+          test "$package" = "com.haskatech.myday" || { echo "STOP: unexpected application ID: $package"; exit 1; }
+          test "$version_code" -gt 1 || { echo "STOP: versionCode must increase beyond installed versionCode 1"; exit 1; }
+          echo "Verified APK certificate, application ID=$package, versionCode=$version_code."
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
