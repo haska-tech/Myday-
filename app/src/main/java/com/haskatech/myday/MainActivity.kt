@@ -289,14 +289,47 @@ private fun TasksScreen(
     onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(tasks)
+    var taskFilter by remember { mutableStateOf("All") }
+    val filteredTasks = when (taskFilter) {
+        "Active" -> tasks.filterNot { it.isCompleted }
+        "Completed" -> tasks.filter { it.isCompleted }
+        else -> tasks
+    }
+    val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Tasks", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
         Text("Everything you need to move forward.", color = Muted, fontSize = 14.sp)
-        Spacer(Modifier.height(16.dp))
-        if (tasks.isEmpty()) {
-            EmptyState(Icons.Default.CheckCircleOutline, "Your task list is clear", "Capture your next action and keep moving forward.")
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("All", "Active", "Completed").forEach { option ->
+                FilterChip(
+                    selected = taskFilter == option,
+                    onClick = { taskFilter = option },
+                    label = {
+                        val count = when (option) {
+                            "Active" -> tasks.count { !it.isCompleted }
+                            "Completed" -> tasks.count { it.isCompleted }
+                            else -> tasks.size
+                        }
+                        Text("$option · $count")
+                    }
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        if (filteredTasks.isEmpty()) {
+            val emptyTitle = when (taskFilter) {
+                "Active" -> "No active tasks"
+                "Completed" -> "Nothing completed yet"
+                else -> "Your task list is clear"
+            }
+            val emptyMessage = when (taskFilter) {
+                "Active" -> "All your tasks are complete. Add a new task when you're ready."
+                "Completed" -> "Completed tasks will appear here."
+                else -> "Capture your next action and keep moving forward."
+            }
+            EmptyState(Icons.Default.CheckCircleOutline, emptyTitle, emptyMessage)
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
