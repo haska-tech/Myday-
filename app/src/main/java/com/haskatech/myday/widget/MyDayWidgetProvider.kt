@@ -84,8 +84,14 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 listOf(SizeF(minWidth.toFloat(), 110f) to layoutId)
             }
 
-            val zone = ZoneId.systemDefault()
+            val zone = ZoneId.of("Africa/Kampala")
             val today = LocalDate.now(zone)
+            val widgetDateFormatter = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).apply {
+                timeZone = java.util.TimeZone.getTimeZone(zone)
+            }
+            val widgetTimeFormatter = DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault()).apply {
+                timeZone = java.util.TimeZone.getTimeZone(zone)
+            }
             val todayTasks = tasks.filter { task ->
                 task.scheduledAtMillis?.let {
                     Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today
@@ -98,7 +104,7 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 topPriorities.forEach { add("★ ${it.title}") }
                 todayTasks.filterNot { it.isTopPriority }.take(remainingSlots).forEach { task ->
                     val time = task.scheduledAtMillis?.let {
-                        DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it))
+                        widgetTimeFormatter.format(Date(it))
                     }
                     add("• ${time?.let { "$it  " } ?: ""}${task.title}")
                 }
@@ -119,7 +125,7 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                 val views = RemoteViews(context.packageName, layoutId)
                 views.setTextViewText(
                     R.id.widget_date,
-                    SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+                    widgetDateFormatter.format(Date())
                 )
                 views.setTextViewText(
                     R.id.widget_priorities,

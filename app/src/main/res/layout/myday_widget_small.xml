@@ -19,5 +19,5 @@
         android:layout_height="wrap_content" android:text="↻ Refresh" android:textColor="#4C8C24"
         android:textSize="10sp" android:textStyle="bold" />
     <TextView android:id="@+id/widget_footer" android:layout_width="0dp"
-        android:layout_height="0dp" android:text="OPEN MYDAY  ·  PLAN WITH PURPOSE" />
+        android:layout_height="wrap_content" android:paddingTop="2dp" android:text="OPEN MYDAY" android:textSize="8sp" android:textColor="#687386" />
 </LinearLayout>

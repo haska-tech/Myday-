@@ -21,6 +21,8 @@ import java.text.SimpleDateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -539,7 +541,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
 
 @Composable
 private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
-    val zone = remember { java.time.ZoneId.systemDefault() }
+    val zone = remember { java.time.ZoneId.of("Africa/Kampala") }
     var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
     var view by remember { mutableStateOf("Week") }
     val scheduled = tasks.filter { it.scheduledAtMillis != null }
@@ -557,7 +559,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalDate() == date
     }.sortedBy { it.scheduledAtMillis }
 
-    Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 18.dp)) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 18.dp)) {
         Text("YOUR SCHEDULE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Calendar", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
         Text("Make space for what matters.", color = Muted, fontSize = 14.sp)
@@ -640,15 +642,17 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         if (entries.isEmpty()) {
             EmptyState(Icons.Default.CalendarToday, "Nothing scheduled", "Your calendar is open. Add a task with a date and time to see it here.")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                items(entries, key = { "${it.second.id}-${it.first}" }) { (date, task) ->
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                entries.forEach { (date, task) ->
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
                         shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.width(76.dp)) {
                                 Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
                                     color = Muted, fontSize = 11.sp)
-                                Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(task.scheduledAtMillis!!)),
+                                Text(DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault()).apply {
+                                    timeZone = java.util.TimeZone.getTimeZone(zone)
+                                }.format(Date(task.scheduledAtMillis!!)),
                                     color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                             Column(Modifier.weight(1f)) {
