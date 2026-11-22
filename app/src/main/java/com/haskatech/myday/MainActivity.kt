@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
 private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
     var tab by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var taskBeingEdited by remember { mutableStateOf<TaskEntity?>(null) }
     var showTopThreeLimit by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -169,7 +170,7 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
                 { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             1 -> TasksScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
-                { tasksViewModel.deleteTask(it) }, { tasksViewModel.startTracking(it) },
+                { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
             3 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
@@ -177,6 +178,16 @@ private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
         }
     }
 
+    if (taskBeingEdited != null) {
+        AddTaskDialog(
+            initialTask = taskBeingEdited,
+            onDismiss = { taskBeingEdited = null },
+            onAdd = { title, priority, scheduledAt, reminderAt, _ ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt) }
+                taskBeingEdited = null
+            }
+        )
+    }
     if (showAddDialog) {
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
@@ -284,6 +295,7 @@ private fun TasksScreen(
     onToggle: (TaskEntity, Boolean) -> Unit,
     onTopPriority: (TaskEntity, Boolean) -> Unit,
     onDelete: (TaskEntity) -> Unit,
+    onEdit: (TaskEntity) -> Unit,
     onStartTracking: (TaskEntity) -> Unit,
     onPauseTracking: (TaskEntity) -> Unit,
     onStopTracking: (TaskEntity) -> Unit,
@@ -346,7 +358,7 @@ private fun TasksScreen(
                         }
                     }
                     items(unscheduledTasks, key = { it.id }) { task ->
-                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
+                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking, onEdit)
                     }
                 }
                 if (scheduledTasks.isNotEmpty()) {
@@ -371,7 +383,8 @@ private fun TaskRow(
     nowMillis: Long = System.currentTimeMillis(),
     onStartTracking: (TaskEntity) -> Unit = {},
     onPauseTracking: (TaskEntity) -> Unit = {},
-    onStopTracking: (TaskEntity) -> Unit = {}
+    onStopTracking: (TaskEntity) -> Unit = {},
+    onEdit: ((TaskEntity) -> Unit)? = null
 ) {
     val isTrackingThisTask = tracking?.taskId == task.id
     val elapsed = if (isTrackingThisTask && tracking?.startedAtMillis != null) {
@@ -398,6 +411,11 @@ private fun TaskRow(
                         }
                         Text("Tracked " + TimeTrackingRules.formatDuration(task.timeSpentMillis + elapsed),
                             color = Muted, fontSize = 11.sp)
+                    }
+                }
+                if (onEdit != null) {
+                    IconButton(onClick = { onEdit(task) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit task", tint = Muted)
                     }
                 }
                 if (onDelete != null) {
@@ -451,18 +469,27 @@ private fun TaskRow(
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, Long?, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var priority by remember { mutableStateOf("Normal") }
-    var recurrenceRule by remember { mutableStateOf("None") }
-    var scheduledAt by remember { mutableStateOf<Long?>(null) }
-    var reminderEnabled by remember { mutableStateOf(true) }
-    var reminderOffsetMinutes by remember { mutableIntStateOf(0) }
+private fun AddTaskDialog(
+    initialTask: TaskEntity? = null,
+    onDismiss: () -> Unit,
+    onAdd: (String, String, Long?, Long?, String) -> Unit
+) {
+    var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
+    var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
+    var recurrenceRule by remember(initialTask?.id) { mutableStateOf(initialTask?.recurrenceRule ?: "None") }
+    var scheduledAt by remember(initialTask?.id) { mutableStateOf(initialTask?.scheduledAtMillis) }
+    val initialReminderOffset = initialTask?.let { task ->
+        if (task.scheduledAtMillis != null && task.reminderAtMillis != null)
+            ((task.scheduledAtMillis - task.reminderAtMillis) / 60_000L).toInt() else 0
+    } ?: 0
+    var reminderEnabled by remember(initialTask?.id) { mutableStateOf(initialTask?.let { it.reminderAtMillis != null } ?: true) }
+    var reminderOffsetMinutes by remember(initialTask?.id) { mutableIntStateOf(initialReminderOffset) }
     val context = LocalContext.current
     val nowMillis = System.currentTimeMillis()
-    val scheduledInFuture = scheduledAt == null || scheduledAt!! > nowMillis
+    val scheduledInFuture = scheduledAt == null || scheduledAt!! > nowMillis || scheduledAt == initialTask?.scheduledAtMillis
     val reminderInFuture = !reminderEnabled || scheduledAt == null ||
-        scheduledAt!! - reminderOffsetMinutes * 60_000L > nowMillis
+        scheduledAt!! - reminderOffsetMinutes * 60_000L > nowMillis ||
+        (scheduledAt == initialTask?.scheduledAtMillis && reminderOffsetMinutes == initialReminderOffset)
     val canSave = title.isNotBlank() && scheduledInFuture && reminderInFuture
     val dateLabel = scheduledAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) }
         ?: "Not scheduled"
@@ -474,8 +501,8 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
         tonalElevation = 4.dp,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("New task", color = Navy, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                Text("Capture it now. Organise it when you're ready.", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Normal)
+                Text(if (initialTask == null) "New task" else "Edit task", color = Navy, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text(if (initialTask == null) "Capture it now. Organise it when you're ready." else "Update the details or move this task to a new time.", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Normal)
             }
         },
         text = {
@@ -591,7 +618,7 @@ private fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, Long?, 
                 onAdd(title, priority, scheduledAt, reminder, recurrenceRule)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
-                Text("Save task", fontWeight = FontWeight.Bold)
+                Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = { OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(13.dp)) { Text("Cancel", color = Muted) } }
