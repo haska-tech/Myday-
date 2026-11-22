@@ -4,47 +4,48 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
-/**
- * Calendar-based recurrence arithmetic in the device's current timezone.
- * Occurrences preserve local wall-clock time across daylight-saving transitions.
- * Monthly occurrences remain anchored to the original day (clamped to month end).
- */
+/** Calendar recurrence arithmetic using the device timezone and preserving local wall-clock time. */
 object RecurrenceSchedule {
-    fun nextDate(afterMillis: Long, rule: String): Long? {
+    fun occurrenceAt(startMillis: Long, rule: String, index: Long): Long? {
+        if (index < 0) return null
         val zone = ZoneId.systemDefault()
-        val start = Instant.ofEpochMilli(afterMillis).atZone(zone)
-        val next = when (rule) {
-            "Daily" -> start.plusDays(1)
-            "Weekly" -> start.plusWeeks(1)
+        val start = Instant.ofEpochMilli(startMillis).atZone(zone)
+        val occurrence = when (rule) {
+            "Daily" -> start.plusDays(index)
+            "Weekly" -> start.plusWeeks(index)
             "Monthly" -> {
-                val month = YearMonth.from(start).plusMonths(1)
-                month.atDay(start.dayOfMonth.coerceAtMost(month.lengthOfMonth()))
-                    .atTime(start.toLocalTime()).atZone(zone)
+                val month = YearMonth.from(start).plusMonths(index)
+                month.atDay(start.dayOfMonth.coerceAtMost(month.lengthOfMonth())).atTime(start.toLocalTime()).atZone(zone)
             }
             else -> return null
         }
-        return next.toInstant().toEpochMilli()
+        return occurrence.toInstant().toEpochMilli()
     }
+
+    fun stepsBetween(fromMillis: Long, toMillis: Long, rule: String): Long? {
+        val zone = ZoneId.systemDefault()
+        val from = Instant.ofEpochMilli(fromMillis).atZone(zone)
+        val to = Instant.ofEpochMilli(toMillis).atZone(zone)
+        if (to.isBefore(from)) return null
+        return when (rule) {
+            "Daily" -> ChronoUnit.DAYS.between(from.toLocalDate(), to.toLocalDate())
+            "Weekly" -> ChronoUnit.DAYS.between(from.toLocalDate(), to.toLocalDate()).takeIf { it % 7L == 0L }?.div(7L)
+            "Monthly" -> ChronoUnit.MONTHS.between(YearMonth.from(from), YearMonth.from(to))
+            else -> null
+        }
+    }
+
+    fun nextDate(afterMillis: Long, rule: String): Long? = occurrenceAt(afterMillis, rule, 1L)
+
 
     fun datesThrough(startMillis: Long, rule: String, throughMillis: Long): List<Long> {
         if (rule == "None" || throughMillis <= startMillis) return emptyList()
-        val zone = ZoneId.systemDefault()
-        val anchor = Instant.ofEpochMilli(startMillis).atZone(zone)
         val result = mutableListOf<Long>()
         var index = 1L
         while (result.size < 400) {
-            val occurrence = when (rule) {
-                "Daily" -> anchor.plusDays(index)
-                "Weekly" -> anchor.plusWeeks(index)
-                "Monthly" -> {
-                    val month = YearMonth.from(anchor).plusMonths(index)
-                    month.atDay(anchor.dayOfMonth.coerceAtMost(month.lengthOfMonth()))
-                        .atTime(anchor.toLocalTime()).atZone(zone)
-                }
-                else -> return emptyList()
-            }
-            val millis = occurrence.toInstant().toEpochMilli()
+            val millis = occurrenceAt(startMillis, rule, index) ?: return emptyList()
             if (millis > throughMillis) break
             result += millis
             index++
@@ -52,7 +53,7 @@ object RecurrenceSchedule {
         return result
     }
 
-    /** Returns the local date of an occurrence, useful to group persisted rows in calendars. */
+
     fun localDateAt(millis: Long): LocalDate =
         Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
 }

@@ -41,6 +41,17 @@ class RecurrenceScheduleTest {
         assertEquals(listOf(date(2024, 2, 29), date(2024, 3, 31)), dates)
     }
 
+    @Test fun monthlySeriesEditUsesStableMonthAnchor() {
+        val february = date(2026, 2, 28)
+        assertEquals(date(2026, 3, 28), RecurrenceSchedule.occurrenceAt(february, "Monthly", 1))
+        assertEquals(date(2026, 4, 28), RecurrenceSchedule.occurrenceAt(february, "Monthly", 2))
+        assertEquals(1L, RecurrenceSchedule.stepsBetween(february, date(2026, 3, 31), "Monthly"))
+    }
+
+    @Test fun weeklySeriesEditUsesWholeWeekSteps() {
+        assertEquals(2L, RecurrenceSchedule.stepsBetween(date(2026, 1, 1), date(2026, 1, 15), "Weekly"))
+    }
+
     @Test fun unsupportedAndNoneRulesDoNotGenerateDates() {
         assertTrue(RecurrenceSchedule.datesThrough(100L, "None", 10_000L).isEmpty())
         assertTrue(RecurrenceSchedule.datesThrough(100L, "Yearly", 10_000L).isEmpty())

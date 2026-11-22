@@ -1030,7 +1030,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         }
         SettingsGroup("ABOUT") {
             SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
-            SettingsRow(Icons.Default.Info, "Version", "0.2.4 · Early access")
+            SettingsRow(Icons.Default.Info, "Version", "0.2.5 · Early access")
         }
         Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)

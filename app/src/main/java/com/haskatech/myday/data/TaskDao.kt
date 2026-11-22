@@ -37,6 +37,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE recurrenceSeriesId = :seriesId ORDER BY scheduledAtMillis ASC")
     suspend fun getRecurrenceSeries(seriesId: String): List<TaskEntity>
 
+    @Query("SELECT * FROM tasks WHERE recurrenceRule != 'None' AND scheduledAtMillis IS NOT NULL ORDER BY scheduledAtMillis ASC")
+    suspend fun getRecurringTasks(): List<TaskEntity>
+
     @Query("UPDATE tasks SET recurrenceSeriesId = :seriesId WHERE id = :taskId")
     suspend fun setRecurrenceSeriesId(taskId: Long, seriesId: String)
 
