@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.TaskConflictRules
 import com.haskatech.myday.data.PlannerTime
 import com.haskatech.myday.data.TimeTrackingSessionEntity
 import com.haskatech.myday.data.TimeTrackingEntryEntity
