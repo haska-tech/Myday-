@@ -289,6 +289,7 @@ private fun TasksScreen(
     onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(tasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Tasks", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
@@ -297,13 +298,33 @@ private fun TasksScreen(
         if (tasks.isEmpty()) {
             EmptyState(Icons.Default.CheckCircleOutline, "Your task list is clear", "Capture your next action and keep moving forward.")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking) }
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (unscheduledTasks.isNotEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("UNSCHEDULED · ${unscheduledTasks.size}", color = Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Tasks you have captured but not assigned a date or time.", color = Muted, fontSize = 12.sp)
+                        }
+                    }
+                    items(unscheduledTasks, key = { it.id }) { task ->
+                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
+                    }
+                }
+                if (scheduledTasks.isNotEmpty()) {
+                    item {
+                        Text("SCHEDULED · ${scheduledTasks.size}", color = Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                    items(scheduledTasks, key = { it.id }) { task ->
+                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
+                    }
+                }
             }
         }
     }
 }
-
 @Composable
 private fun TaskRow(
     task: TaskEntity,
