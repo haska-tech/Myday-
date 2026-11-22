@@ -582,11 +582,16 @@ private fun AddTaskDialog(
                     Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
                 if (scheduledAt != null) {
-                    Text("REPEAT", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("None", "Daily", "Weekly", "Monthly").forEach { option ->
-                            FilterChip(selected = recurrenceRule == option, onClick = { recurrenceRule = option }, label = { Text(option, fontSize = 11.sp) })
+                    if (initialTask == null) {
+                        Text("REPEAT", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf("None", "Daily", "Weekly", "Monthly").forEach { option ->
+                                FilterChip(selected = recurrenceRule == option, onClick = { recurrenceRule = option }, label = { Text(option, fontSize = 11.sp) })
+                            }
                         }
+                    } else if (initialTask.recurrenceRule != "None") {
+                        Text("Recurring task · ${initialTask.recurrenceRule}", color = Muted, fontSize = 11.sp)
+                        Text("Changes apply to this occurrence only.", color = Muted, fontSize = 10.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
@@ -608,7 +613,9 @@ private fun AddTaskDialog(
                             Text("This reminder would be in the past. Choose a shorter lead time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                         }
                     }
-                    TextButton(onClick = { scheduledAt = null; recurrenceRule = "None"; reminderOffsetMinutes = 0 }) { Text("Clear schedule") }
+                    if (initialTask?.recurrenceRule == null || initialTask.recurrenceRule == "None") {
+                        TextButton(onClick = { scheduledAt = null; recurrenceRule = "None"; reminderOffsetMinutes = 0 }) { Text("Clear schedule") }
+                    }
                 }
             }
         },
