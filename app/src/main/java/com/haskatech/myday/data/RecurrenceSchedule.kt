@@ -15,7 +15,7 @@ object RecurrenceSchedule {
             "Monthly" -> Calendar.MONTH
             else -> return null
         }
-        return Calendar.getInstance(TimeZone.getDefault()).apply {
+        return Calendar.getInstance().apply {
             timeInMillis = afterMillis
             add(field, 1)
         }.timeInMillis
