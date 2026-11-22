@@ -12,6 +12,12 @@ import java.time.Instant
 object PlannerTime {
     fun zoneId(): ZoneId = ZoneId.systemDefault()
 
+    /** Every hour shown by the weekly timetable, including midnight through 11 PM. */
+    val dayHours: IntRange = 0..23
+
+    fun hourAt(epochMillis: Long, zone: ZoneId = zoneId()): Int =
+        Instant.ofEpochMilli(epochMillis).atZone(zone).hour
+
     fun localDateAt(epochMillis: Long): LocalDate =
         Instant.ofEpochMilli(epochMillis).atZone(zoneId()).toLocalDate()
 
