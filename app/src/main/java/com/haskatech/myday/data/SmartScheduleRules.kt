@@ -37,10 +37,13 @@ object SmartScheduleRules {
    val available=freeMinutesUntil(task,active,nowMillis,task.deadlineAtMillis!!,zone,workdayStartHour,workdayEndHour)
    if(available<duration)warnings+=SmartPlanWarning(SmartWarningType.DEADLINE_INSUFFICIENT,task.id,task.title,"Only $available free planning minutes remain before the deadline; about $duration are needed.")
   }
-  val recommendations=active.map{task->
+  val ranked=active.sortedWith(compareByDescending<TaskEntity>{score(it,nowMillis,it.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES)}
+   .thenBy{it.deadlineAtMillis?:Long.MAX_VALUE}.thenBy{it.createdAtMillis})
+  val planningTasks=active.toMutableList()
+  val recommendations=ranked.map{task->
    val duration=task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES;val existing=task.scheduledAtMillis
    val hasIssue=warnings.any{it.taskId==task.id&&(it.type==SmartWarningType.OVERLAP||it.type==SmartWarningType.OUTSIDE_WORK_HOURS||it.type==SmartWarningType.DEADLINE_INSUFFICIENT)}
-   val proposed=if(existing!=null&&!hasIssue)existing else findSlot(task,active,nowMillis,zone,workdayStartHour,workdayEndHour,horizonDays)
+   val proposed=if(existing!=null&&!hasIssue)existing else findSlot(task,planningTasks,nowMillis,zone,workdayStartHour,workdayEndHour,horizonDays)
    val reasons=mutableListOf<String>()
    reasons+=when(task.priority){"High"->"High importance";"Low"->"Lower importance";else->"Normal importance"}
    if(task.isTopPriority)reasons+="already marked Top 3"
@@ -48,8 +51,12 @@ object SmartScheduleRules {
    reasons+=if(task.plannedDurationMinutes==null)"estimated at $duration minutes" else "$duration-minute task"
    if(warnings.any{it.taskId==task.id&&it.type==SmartWarningType.DEADLINE_INSUFFICIENT})reasons+="deadline may be difficult to meet"
    if(proposed==null)warnings+=SmartPlanWarning(SmartWarningType.NO_AVAILABLE_SLOT,task.id,task.title,"No suitable opening was found in the next $horizonDays days.")
+   else if(existing==null||hasIssue){
+    val index=planningTasks.indexOfFirst{it.id==task.id}
+    if(index>=0)planningTasks[index]=task.copy(scheduledAtMillis=proposed,plannedDurationMinutes=duration)
+   }
    SmartRecommendation(task.id,task.title,score(task,nowMillis,duration),reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing)
-  }.sortedWith(compareByDescending<SmartRecommendation>{it.score}.thenBy{it.proposedStartMillis?:Long.MAX_VALUE}).take(3)
+  }.take(3)
   return SmartPlan(recommendations,warnings.distinct(),freeMinutesOnDate(null,active,today,nowMillis,zone,workdayStartHour,workdayEndHour).toInt())
  }
  private fun score(task:TaskEntity,now:Long,duration:Int):Int {
