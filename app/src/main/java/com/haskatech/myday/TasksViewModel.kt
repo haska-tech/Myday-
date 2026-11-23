@@ -44,14 +44,14 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
     )
 
-    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null) {
+    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null, deadlineAtMillis: Long? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return@launch
             if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
 
-            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes)
+            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes, deadlineAtMillis)
             createdTasks.orEmpty().forEach { task ->
                 val reminder = task.reminderAtMillis
                 if (reminder != null && reminder > System.currentTimeMillis()) {
@@ -62,14 +62,14 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, applyToSeries: Boolean = false) {
+    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?, applyToSeries: Boolean = false) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (!com.haskatech.myday.data.TaskEditRules.isValid(
                     title, scheduledAtMillis, reminderAtMillis, now,
                     task.scheduledAtMillis, task.reminderAtMillis
                 )) return@launch
-            val updatedTasks = repository.updateTask(task, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes, applyToSeries)
+            val updatedTasks = repository.updateTask(task, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes, deadlineAtMillis, applyToSeries)
             updatedTasks.forEach { updated ->
                 ReminderScheduler.cancel(getApplication(), updated.id)
                 updated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
@@ -77,6 +77,23 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             if (updatedTasks.isNotEmpty()) MyDayWidgetProvider.requestRefresh(getApplication())
+        }
+    }
+
+    fun approveSuggestedTime(taskId: Long, startMillis: Long, durationMinutes: Int) {
+        viewModelScope.launch {
+            val updated = repository.approveSuggestedTime(taskId, startMillis, durationMinutes) ?: return@launch
+            ReminderScheduler.cancel(getApplication(), taskId)
+            updated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
+                ReminderScheduler.schedule(getApplication(), taskId, updated.title, it)
+            }
+            MyDayWidgetProvider.requestRefresh(getApplication())
+        }
+    }
+
+    fun correctPlannedDuration(taskId: Long, minutes: Int) {
+        viewModelScope.launch {
+            if (repository.updatePlannedDuration(taskId, minutes)) MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }
 
