@@ -83,7 +83,7 @@ fun SmartPlanScreen(
 
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 18.dp)) {
         Text("SMART SCHEDULING", color = MyDayColors.Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Your plan", color = MyDayColors.Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold)
+        Text("Your plan", color = MyDayColors.Navy, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
         Text("Suggestions are calculated on this device. Nothing moves until you approve it.",
             color = MyDayColors.Muted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
@@ -91,9 +91,9 @@ fun SmartPlanScreen(
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text("AVAILABLE TODAY", color = MyDayColors.Lime, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Text("${plan.availableMinutesToday / 60}h ${plan.availableMinutesToday % 60}m",
-                    color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
+                    color = MyDayColors.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
                 Text("Estimated free time between 08:00 and 18:00, after commitments. Tasks without a duration use a 60-minute estimate.",
-                    color = Color.LightGray, fontSize = 11.sp)
+                    color = MyDayColors.OnNavyMuted, fontSize = 11.sp)
             }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
