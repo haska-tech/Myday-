@@ -50,8 +50,9 @@ class MyDayWidgetProvider : AppWidgetProvider() {
   }
   private fun completionPendingIntent(context: Context, taskId: Long): PendingIntent {
    val intent = Intent(context, WidgetTaskActionReceiver::class.java).apply {
+    action = WidgetTaskActionReceiver.ACTION_COMPLETE_TASK
     data = Uri.parse(WidgetTaskCompletionRules.pendingIntentUri(taskId))
-    putExtra(EXTRA_TASK_ID, taskId)
+    putExtra(WidgetTaskActionReceiver.EXTRA_TASK_ID, taskId)
    }
    return PendingIntent.getBroadcast(context, taskId.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
