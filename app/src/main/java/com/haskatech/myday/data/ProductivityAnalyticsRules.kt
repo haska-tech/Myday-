@@ -32,13 +32,18 @@ object ProductivityAnalyticsRules {
         val intervals = entries.map { TimeInterval(it.startedAtMillis, it.endedAtMillis) } +
             listOfNotNull(activeStartedAtMillis?.let { TimeInterval(it, nowMillis) })
         val totals = TimeTrackingRules.durationByDate(intervals, zone)
-        val daily = generateSequence(start) { d -> if (d.isBefore(today)) d.plusDays(1) else null }.map { date ->
-            DailyAnalyticsPoint(date, selected.count { Instant.ofEpochMilli(it.createdAtMillis).atZone(zone).toLocalDate() == date }, totals[date] ?: 0L)
+        val createdByDate = selected.groupingBy {
+            Instant.ofEpochMilli(it.createdAtMillis).atZone(zone).toLocalDate()
+        }.eachCount()
+        val dailyStart = maxOf(start, today.minusDays(29))
+        val daily = generateSequence(dailyStart) { d -> if (d.isBefore(today)) d.plusDays(1) else null }.map { date ->
+            DailyAnalyticsPoint(date, createdByDate[date] ?: 0, totals[date] ?: 0L)
         }.toList()
         val completed = selected.count { it.isCompleted }
+        val trackedInRange = totals.filterKeys { !it.isBefore(start) && !it.isAfter(today) }.values.sum()
         return ProductivityAnalytics(start, today, selected.size, completed,
             if (selected.isEmpty()) 0 else completed * 100 / selected.size,
             tasks.count { !it.isCompleted && it.deadlineAtMillis != null && it.deadlineAtMillis < nowMillis },
-            daily.sumOf { it.trackedMillis }, daily.takeLast(30))
+            trackedInRange, daily)
     }
 }
