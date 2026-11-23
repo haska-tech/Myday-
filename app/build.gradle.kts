@@ -14,8 +14,8 @@ android {
         applicationId = "com.haskatech.myday"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.3.5"
+        versionCode = 18
+        versionName = "0.3.6"
     }
 
     // GitHub Actions supplies a persistent keystore for development APKs.
@@ -39,7 +39,10 @@ android {
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
