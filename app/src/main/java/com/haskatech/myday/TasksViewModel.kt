@@ -8,7 +8,9 @@ import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.TaskRepository
 import com.haskatech.myday.data.TaskTimeTrackingRepository
 import com.haskatech.myday.reminders.ReminderScheduler
+import com.haskatech.myday.reminders.ReminderRecoveryRules
 import com.haskatech.myday.widget.MyDayWidgetProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,11 +22,14 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            repository.refreshRecurringOccurrences().forEach { generated ->
-                generated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
-                    ReminderScheduler.schedule(getApplication(), generated.id, generated.title, it)
+            repository.refreshRecurringOccurrences()
+            // AlarmManager schedules are not durable across force-stop; rebuild them from Room
+            // whenever the user next opens the app.
+            database.taskDao().observeTasks().first().asSequence()
+                .filter { ReminderRecoveryRules.needsRecovery(it, System.currentTimeMillis()) }
+                .forEach { task ->
+                    ReminderScheduler.schedule(getApplication(), task.id, task.title, task.reminderAtMillis!!)
                 }
-            }
             MyDayWidgetProvider.requestRefresh(getApplication())
         }
     }

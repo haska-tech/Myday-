@@ -23,6 +23,15 @@ interface TimeTrackingDao {
     @Insert
     suspend fun insertEntry(entry: TimeTrackingEntryEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEntries(entries: List<TimeTrackingEntryEntity>)
+
     @Query("SELECT * FROM time_tracking_entry ORDER BY startedAtMillis ASC")
     fun observeEntries(): Flow<List<TimeTrackingEntryEntity>>
+
+    @Query("SELECT * FROM time_tracking_entry ORDER BY startedAtMillis ASC")
+    suspend fun getAllEntries(): List<TimeTrackingEntryEntity>
+
+    @Query("DELETE FROM time_tracking_entry")
+    suspend fun clearEntries()
 }

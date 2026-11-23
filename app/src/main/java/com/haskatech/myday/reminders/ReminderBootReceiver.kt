@@ -13,26 +13,16 @@ import kotlinx.coroutines.launch
 
 class ReminderBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
-            intent.action != Intent.ACTION_MY_PACKAGE_REPLACED
-        ) return
-
+        if (intent.action !in ReminderRecoveryRules.actions()) return
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 PomodoroTimerManager.restore(context)
                 val tasks = MyDayDatabase.getDatabase(context).taskDao().observeTasks().first()
                 val now = System.currentTimeMillis()
-                tasks.asSequence()
-                    .filter { !it.isCompleted && it.reminderAtMillis != null && it.reminderAtMillis > now }
-                    .forEach { task ->
-                        ReminderScheduler.schedule(
-                            context,
-                            task.id,
-                            task.title,
-                            task.reminderAtMillis!!
-                        )
-                    }
+                tasks.filter { ReminderRecoveryRules.needsRecovery(it, now) }.forEach { task ->
+                    ReminderScheduler.schedule(context, task.id, task.title, task.reminderAtMillis!!)
+                }
                 MyDayWidgetProvider.requestRefresh(context)
             } finally {
                 pendingResult.finish()

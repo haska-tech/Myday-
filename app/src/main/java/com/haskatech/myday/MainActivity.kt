@@ -6,11 +6,13 @@ import android.content.ActivityNotFoundException
 import android.speech.RecognizerIntent
 import android.widget.Toast
 import android.content.Intent
+import android.net.Uri
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import java.text.DateFormat
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.MyDayBackupManager
 import com.haskatech.myday.data.TaskConflictRules
 import com.haskatech.myday.data.PlannerTime
 import com.haskatech.myday.data.TimeTrackingSessionEntity
@@ -49,6 +52,7 @@ import com.haskatech.myday.data.TimeTrackingEntryEntity
 import com.haskatech.myday.focus.TimeTrackingRules
 import com.haskatech.myday.focus.VoiceCaptureRules
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val Navy = Color(0xFF14243A)
 private val Lime = Color(0xFFB7E445)
@@ -1032,6 +1036,21 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 
 @Composable
 private fun SettingsScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var showRestoreConfirmation by remember { mutableStateOf(false) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) scope.launch {
+            runCatching { MyDayBackupManager.exportTo(context, uri) }
+                .onSuccess { Toast.makeText(context, "MyDay backup exported.", Toast.LENGTH_LONG).show() }
+                .onFailure { Toast.makeText(context, "Backup failed: ${it.localizedMessage ?: "storage error"}", Toast.LENGTH_LONG).show() }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        restoreUri = uri
+        showRestoreConfirmation = uri != null
+    }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
@@ -1048,15 +1067,53 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
             SettingsRow(Icons.Default.Insights, "Time tracking", "Track time spent on individual tasks")
             SettingsRow(Icons.Default.OfflineBolt, "Offline-first", "Your tasks are stored on this device")
         }
+        SettingsGroup("BACKUP & RESTORE") {
+            Text("Export a portable copy of tasks and tracked time, or restore a previous MyDay backup. Files stay under your control; no cloud account is required.",
+                color = Muted, fontSize = 11.sp, modifier = Modifier.padding(vertical = 8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { exportLauncher.launch("MyDay-backup.json") }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.FileUpload, contentDescription = null)
+                    Spacer(Modifier.width(5.dp))
+                    Text("Export backup")
+                }
+                TextButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) },
+                    modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null)
+                    Spacer(Modifier.width(5.dp))
+                    Text("Restore backup")
+                }
+            }
+        }
         SettingsGroup("ABOUT") {
             SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
-            SettingsRow(Icons.Default.Info, "Version", "0.2.8 · Early access")
+            SettingsRow(Icons.Default.Info, "Version", "0.2.9 · Early access")
         }
         Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
+    if (showRestoreConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirmation = false; restoreUri = null },
+            title = { Text("Replace this device's MyDay data?") },
+            text = { Text("Restoring replaces all current tasks and tracked-time records with the selected backup. Export a backup of current data first if you may need it.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val uri = restoreUri
+                    showRestoreConfirmation = false
+                    restoreUri = null
+                    if (uri != null) scope.launch {
+                        runCatching { MyDayBackupManager.importFrom(context, uri) }
+                            .onSuccess { Toast.makeText(context, "MyDay data restored.", Toast.LENGTH_LONG).show() }
+                            .onFailure { Toast.makeText(context, "Restore failed: ${it.localizedMessage ?: "invalid backup or storage error"}", Toast.LENGTH_LONG).show() }
+                    }
+                }) { Text("Replace data") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirmation = false; restoreUri = null }) { Text("Cancel") }
+            }
+        )
+    }
 }
-
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

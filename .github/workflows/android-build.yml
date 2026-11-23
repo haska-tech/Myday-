@@ -78,7 +78,7 @@ jobs:
           package="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
           version_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p")"
           test "$package" = "com.haskatech.myday" || { echo "STOP: unexpected application ID: $package"; exit 1; }
-          test "$version_code" -gt 3 || { echo "STOP: versionCode must increase beyond currently installed versionCode 3"; exit 1; }
+          test "$version_code" -gt 10 || { echo "STOP: versionCode must increase beyond M2.3 baseline versionCode 10"; exit 1; }
           echo "Verified APK certificate, application ID=$package, versionCode=$version_code."
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
