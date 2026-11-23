@@ -18,12 +18,26 @@ object WidgetLayoutRules {
         val widthRange = maxW - minW
         val heightRange = maxH - minH
         val initialLayout = legacyLayout(minW.toInt(), minH.toInt())
+        val maximumLayout = legacyLayout(maxW.toInt(), maxH.toInt())
         val result = mutableListOf(WidgetBreakpoint(minW, minH, initialLayout))
-        if (initialLayout == WidgetLayoutSize.SMALL && (widthRange > 0f || heightRange > 0f)) {
-            result += WidgetBreakpoint(minW + widthRange * 0.45f, minH + heightRange * 0.25f, WidgetLayoutSize.MEDIUM)
+
+        if (initialLayout.ordinal < WidgetLayoutSize.MEDIUM.ordinal &&
+            maximumLayout.ordinal >= WidgetLayoutSize.MEDIUM.ordinal
+        ) {
+            result += WidgetBreakpoint(
+                minW + widthRange * 0.45f,
+                minH + heightRange * 0.25f,
+                WidgetLayoutSize.MEDIUM
+            )
         }
-        if (initialLayout != WidgetLayoutSize.LARGE && (widthRange > 0f || heightRange > 0f)) {
-            result += WidgetBreakpoint(minW + widthRange * 0.75f, minH + heightRange * 0.70f, WidgetLayoutSize.LARGE)
+        if (initialLayout.ordinal < WidgetLayoutSize.LARGE.ordinal &&
+            maximumLayout.ordinal >= WidgetLayoutSize.LARGE.ordinal
+        ) {
+            result += WidgetBreakpoint(
+                minW + widthRange * 0.75f,
+                minH + heightRange * 0.70f,
+                WidgetLayoutSize.LARGE
+            )
         }
         return result
     }
