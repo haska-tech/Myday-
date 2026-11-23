@@ -96,5 +96,10 @@ object SmartScheduleRules {
    val start=task.scheduledAtMillis!!;if(Instant.ofEpochMilli(start).atZone(zone).toLocalDate()!=date)return@mapNotNull null
    val end=safeEnd(start,task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES)?:return@mapNotNull null;Busy(start,end)
   }.toList()
+ fun isWithinDefaultWorkHours(startMillis:Long,durationMinutes:Int,zone:ZoneId=ZoneId.systemDefault()):Boolean {
+  val end=safeEnd(startMillis,durationMinutes)?:return false
+  val start=Instant.ofEpochMilli(startMillis).atZone(zone);val finish=Instant.ofEpochMilli(end).atZone(zone)
+  return start.hour in DEFAULT_WORKDAY_START_HOUR until DEFAULT_WORKDAY_END_HOUR && finish.toLocalDate()==start.toLocalDate() && finish.hour<=DEFAULT_WORKDAY_END_HOUR && (finish.hour<DEFAULT_WORKDAY_END_HOUR||finish.minute==0)
+ }
  private fun safeEnd(start:Long,minutes:Int):Long?{if(minutes<=0)return null;val duration=minutes.toLong()*60000L;return if(start>Long.MAX_VALUE-duration)null else start+duration}
 }

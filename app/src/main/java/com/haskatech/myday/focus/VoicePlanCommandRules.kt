@@ -6,7 +6,11 @@ object VoicePlanCommandRules {
  fun parse(spokenText:String,recommendations:List<SmartRecommendation>):VoicePlanCommand? {
   val text=spokenText.trim().lowercase(Locale.ROOT).replace(Regex("[^a-z0-9 ]")," ").replace(Regex("\\s+")," ")
   if(text.isBlank())return null
-  val target=recommendations.sortedByDescending{it.title.length}.firstOrNull{val title=it.title.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9 ]")," ").trim();title.isNotEmpty()&&text.contains(title)}?:return null
+  val matches=recommendations.mapNotNull{item->val title=item.title.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9 ]")," ").trim();if(title.isNotEmpty()&&text.contains(title))item else null}
+  val longest=matches.maxOfOrNull{it.title.length}?:return null
+  val best=matches.filter{it.title.length==longest}
+  if(best.size!=1)return null
+  val target=best.single()
   return when{
    text.startsWith("approve ")||text.startsWith("confirm ")->VoicePlanCommand.Approve(target.taskId)
    text.startsWith("skip ")||text.startsWith("defer ")||text.startsWith("not now ")->VoicePlanCommand.Defer(target.taskId)

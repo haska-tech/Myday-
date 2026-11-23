@@ -10,5 +10,10 @@ class SmartScheduleRulesTest {
  @Test fun proposesFirstOpeningAfterCommitment(){val p=SmartScheduleRules.analyze(listOf(task(1,"Meeting",duration=60,scheduled=start),task(2,"Work",duration=90)),start,zone);assertEquals(start+3600000L,p.recommendations.first{it.taskId==2L}.proposedStartMillis)}
  @Test fun detectsOverlapOutsideHoursDeadlineRiskAndOverload(){val late=day.atTime(19,0).atZone(zone).toInstant().toEpochMilli();val tasks=listOf(task(1,"Evening",scheduled=late,duration=120),task(2,"Overlap A",scheduled=start,duration=180),task(3,"Overlap B",scheduled=start+3600000L,duration=180),task(4,"Impossible",duration=240,deadline=start+1800000L),task(5,"Heavy day",scheduled=start+4*3600000L,duration=420));val p=SmartScheduleRules.analyze(tasks,start,zone);assertTrue(p.warnings.any{it.type==SmartWarningType.OUTSIDE_WORK_HOURS});assertTrue(p.warnings.any{it.type==SmartWarningType.OVERLAP});assertTrue(p.warnings.any{it.type==SmartWarningType.DEADLINE_INSUFFICIENT});assertTrue(p.warnings.any{it.type==SmartWarningType.DAILY_OVERLOAD})}
  @Test fun completedTasksExcludedAndGoodSchedulePreserved(){val done=task(1,"Done",scheduled=start,duration=480).copy(isCompleted=true);val planned=task(2,"Planned",scheduled=start+7200000L,duration=30);val p=SmartScheduleRules.analyze(listOf(done,planned),start,zone);assertEquals(listOf(2L),p.recommendations.map{it.taskId});assertEquals(planned.scheduledAtMillis,p.recommendations.single().proposedStartMillis);assertFalse(p.recommendations.single().changesSchedule)}
+ @Test fun unscheduledRecommendationsReserveDifferentOpenings(){
+  val p=SmartScheduleRules.analyze(listOf(task(1,"First"),task(2,"Second"),task(3,"Third")),start,zone)
+  val slots=p.recommendations.mapNotNull{it.proposedStartMillis}
+  assertEquals(slots.size,slots.distinct().size)
+ }
  @Test fun reportsNoSlotWhenDeadlineIsPast(){val p=SmartScheduleRules.analyze(listOf(task(1,"Expired",deadline=start-1)),start,zone);assertNull(p.recommendations.single().proposedStartMillis);assertTrue(p.warnings.any{it.type==SmartWarningType.NO_AVAILABLE_SLOT})}
 }
