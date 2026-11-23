@@ -56,9 +56,11 @@ private val Paper = Color(0xFFF4F6F9)
 private val Muted = Color(0xFF748094)
 
 class MainActivity : ComponentActivity() {
-    companion object { const val ACTION_QUICK_ADD = com.haskatech.myday.widget.WidgetQuickAddRules.ACTION_QUICK_ADD }
+    private val quickAddRequest = mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false)) quickAddRequest.intValue++
         setContent {
             MaterialTheme(
                 colorScheme = lightColorScheme(
@@ -76,17 +78,34 @@ class MainActivity : ComponentActivity() {
                     primaryContainer = Color(0xFFEAF2D4)
                 )
             ) {
-                MyDayApp(openQuickAddInitially = com.haskatech.myday.widget.WidgetQuickAddRules.shouldOpenAddDialog(intent?.action))
+                MyDayApp(openQuickAddRequest = quickAddRequest.intValue)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false)) quickAddRequest.intValue++
+    }
+
+    companion object {
+        const val EXTRA_OPEN_QUICK_ADD = "com.haskatech.myday.OPEN_QUICK_ADD"
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MyDayApp(openQuickAddInitially: Boolean = false, tasksViewModel: TasksViewModel = viewModel()) {
+private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = viewModel()) {
     var tab by remember { mutableIntStateOf(0) }
-    var showAddDialog by remember { mutableStateOf(openQuickAddInitially) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var handledQuickAddRequest by remember { mutableIntStateOf(0) }
+    LaunchedEffect(openQuickAddRequest) {
+        if (openQuickAddRequest > handledQuickAddRequest) {
+            showAddDialog = true
+            handledQuickAddRequest = openQuickAddRequest
+        }
+    }
     var taskBeingEdited by remember { mutableStateOf<TaskEntity?>(null) }
     var showTopThreeLimit by remember { mutableStateOf(false) }
     val context = LocalContext.current
