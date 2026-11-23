@@ -67,17 +67,3 @@ object WidgetTaskCompletionRules {
         return "myday://widget/complete/$taskId"
     }
 }
-
-object WidgetSizeRules {
-    fun choose(widthDp: Int, heightDp: Int): WidgetSizeClass = when {
-        widthDp >= 260 && heightDp >= 150 -> WidgetSizeClass.LARGE
-        widthDp >= 170 && heightDp >= 100 -> WidgetSizeClass.MEDIUM
-        else -> WidgetSizeClass.SMALL
-    }
-
-    fun taskLimit(size: WidgetSizeClass): Int = when (size) {
-        WidgetSizeClass.SMALL -> 2
-        WidgetSizeClass.MEDIUM -> 5
-        WidgetSizeClass.LARGE -> 8
-    }
-}
