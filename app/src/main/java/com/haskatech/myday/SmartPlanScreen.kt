@@ -82,14 +82,14 @@ fun SmartPlanScreen(
     }
 
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 18.dp)) {
-        Text("SMART SCHEDULING", color = Color(0xFF748094), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Your plan", color = Color(0xFF14243A), fontSize = 29.sp, fontWeight = FontWeight.ExtraBold)
+        Text("SMART SCHEDULING", color = MyDayColors.Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Your plan", color = MyDayColors.Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold)
         Text("Suggestions are calculated on this device. Nothing moves until you approve it.",
-            color = Color(0xFF748094), fontSize = 13.sp)
+            color = MyDayColors.Muted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF14243A)), shape = RoundedCornerShape(20.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.Navy), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("AVAILABLE TODAY", color = Color(0xFFB7E445), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("AVAILABLE TODAY", color = MyDayColors.Lime, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Text("${plan.availableMinutesToday / 60}h ${plan.availableMinutesToday % 60}m",
                     color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
                 Text("Estimated free time between 08:00 and 18:00, after commitments. Tasks without a duration use a 60-minute estimate.",
@@ -97,7 +97,7 @@ fun SmartPlanScreen(
             }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("TOP RECOMMENDATIONS", color = Color(0xFF14243A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("TOP RECOMMENDATIONS", color = MyDayColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             TextButton(onClick = {
                 val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -120,7 +120,7 @@ fun SmartPlanScreen(
             Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
                 Text(if (plan.recommendations.isEmpty()) "No active tasks to prioritise. Add tasks to build a plan."
                     else "All current recommendations are deferred. You can still plan tasks manually.",
-                    modifier = Modifier.padding(18.dp), color = Color(0xFF748094), fontSize = 13.sp)
+                    modifier = Modifier.padding(18.dp), color = MyDayColors.Muted, fontSize = 13.sp)
             }
         } else {
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -129,15 +129,15 @@ fun SmartPlanScreen(
                 }
                 if (plan.warnings.isNotEmpty()) {
                     item {
-                        Text("SCHEDULE CHECKS", color = Color(0xFF14243A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("SCHEDULE CHECKS", color = MyDayColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     items(plan.warnings) { warning ->
-                        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)), shape = RoundedCornerShape(13.dp)) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.WarningBackground), shape = RoundedCornerShape(13.dp)) {
                             Row(Modifier.fillMaxWidth().padding(11.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                                Icon(Icons.Default.WarningAmber, contentDescription = null, tint = Color(0xFF8A4B08), modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.WarningAmber, contentDescription = null, tint = MyDayColors.WarningText, modifier = Modifier.size(18.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(warning.type.label(), color = Color(0xFF8A4B08), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                    Text(warning.taskTitle + " · " + warning.message, color = Color(0xFF8A4B08), fontSize = 11.sp)
+                                    Text(warning.type.label(), color = MyDayColors.WarningText, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text(warning.taskTitle + " · " + warning.message, color = MyDayColors.WarningText, fontSize = 11.sp)
                                 }
                             }
                         }
@@ -147,10 +147,10 @@ fun SmartPlanScreen(
             }
         }
         if (plan.warnings.isNotEmpty() && visible.isEmpty()) {
-            Text("${plan.warnings.size} schedule checks need attention.", color = Color(0xFF748094), fontSize = 11.sp)
+            Text("${plan.warnings.size} schedule checks need attention.", color = MyDayColors.Muted, fontSize = 11.sp)
         }
         Text("Offline fallback: edit a task or approve a proposed time manually. Voice recognition depends on an installed Android speech service.",
-            color = Color(0xFF748094), fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+            color = MyDayColors.Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -160,41 +160,41 @@ private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = Color(0xFFEAF2D4), shape = RoundedCornerShape(8.dp)) {
-                    Text("#${item.score}", color = Color(0xFF14243A), fontWeight = FontWeight.Bold, fontSize = 11.sp,
+                Surface(color = MyDayColors.SoftLime, shape = RoundedCornerShape(8.dp)) {
+                    Text("#${item.score}", color = MyDayColors.Navy, fontWeight = FontWeight.Bold, fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
                 }
                 Spacer(Modifier.width(8.dp))
-                Text(item.title, color = Color(0xFF14243A), fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                Text(item.title, color = MyDayColors.Navy, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
             }
-            Text(item.reason, color = Color(0xFF748094), fontSize = 11.sp)
+            Text(item.reason, color = MyDayColors.Muted, fontSize = 11.sp)
             item.deadlineAtMillis?.let { deadline ->
                 Text("Deadline · " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(deadline)),
-                    color = Color(0xFF8A4B08), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    color = MyDayColors.WarningText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
             if (item.proposedStartMillis != null) {
                 Text(
                     (if (item.changesSchedule) "Suggested time · " else "Current time · ") +
                         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(item.proposedStartMillis)),
-                    color = Color(0xFF14243A), fontSize = 12.sp, fontWeight = FontWeight.SemiBold
+                    color = MyDayColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (item.changesSchedule) {
                         Button(onClick = { onApprove(item.taskId, item.proposedStartMillis, item.durationMinutes) },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB7E445), contentColor = Color(0xFF14243A))) {
+                            colors = ButtonDefaults.buttonColors(containerColor = MyDayColors.Lime, contentColor = MyDayColors.Navy)) {
                             Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Approve time")
                         }
                     } else {
-                        Text("Existing time fits.", color = Color(0xFF748094), fontSize = 10.sp, modifier = Modifier.weight(1f))
+                        Text("Existing time fits.", color = MyDayColors.Muted, fontSize = 10.sp, modifier = Modifier.weight(1f))
                     }
                     OutlinedButton(onClick = { onEditTask(item.taskId) }) { Text("Edit") }
                 }
             } else {
                 Text("No suitable slot found. Adjust the deadline, duration or commitments manually.",
-                    color = Color(0xFF8A4B08), fontSize = 11.sp)
+                    color = MyDayColors.WarningText, fontSize = 11.sp)
                 OutlinedButton(onClick = { onEditTask(item.taskId) }, modifier = Modifier.fillMaxWidth()) { Text("Edit task") }
             }
         }
