@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 enum class SmartWarningType { OVERLAP, OUTSIDE_WORK_HOURS, DEADLINE_INSUFFICIENT, DAILY_OVERLOAD, NO_AVAILABLE_SLOT }
 data class SmartPlanWarning(val type:SmartWarningType,val taskId:Long?,val taskTitle:String,val message:String)
-data class SmartRecommendation(val taskId:Long,val title:String,val score:Int,val reason:String,val proposedStartMillis:Long?,val durationMinutes:Int,val changesSchedule:Boolean)
+data class SmartRecommendation(val taskId:Long,val title:String,val score:Int,val reason:String,val proposedStartMillis:Long?,val durationMinutes:Int,val changesSchedule:Boolean,val deadlineAtMillis:Long?=null)
 data class SmartPlan(val recommendations:List<SmartRecommendation>,val warnings:List<SmartPlanWarning>,val availableMinutesToday:Int)
 /** Deterministic local planner. It proposes; only an explicit approval can write a time to Room. */
 object SmartScheduleRules {
@@ -55,7 +55,7 @@ object SmartScheduleRules {
     val index=planningTasks.indexOfFirst{it.id==task.id}
     if(index>=0)planningTasks[index]=task.copy(scheduledAtMillis=proposed,plannedDurationMinutes=duration)
    }
-   SmartRecommendation(task.id,task.title,score(task,nowMillis,duration),reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing)
+   SmartRecommendation(task.id,task.title,score(task,nowMillis,duration),reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing,task.deadlineAtMillis)
   }.take(3)
   return SmartPlan(recommendations,warnings.distinct(),freeMinutesOnDate(null,active,today,nowMillis,zone,workdayStartHour,workdayEndHour).toInt())
  }
