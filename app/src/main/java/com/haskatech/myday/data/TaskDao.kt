@@ -75,10 +75,10 @@ interface TaskDao {
     suspend fun applyApprovedSchedule(taskId: Long, startMillis: Long, durationMinutes: Int): TaskEntity? {
         val current = getTaskById(taskId) ?: return null
         if (current.isCompleted || !SmartScheduleRules.isWithinDefaultWorkHours(startMillis, durationMinutes) ||
-            (current.deadlineAtMillis != null && (startMillis > current.deadlineAtMillis || durationMinutes <= 0 || startMillis > Long.MAX_VALUE - durationMinutes.toLong() * 60000L || startMillis + durationMinutes.toLong() * 60000L > current.deadlineAtMillis, current.urgency)) || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks().map { it.copy(plannedDurationMinutes = it.plannedDurationMinutes ?: 60) }, taskId).isNotEmpty()) return null
+            (current.deadlineAtMillis != null && (startMillis > current.deadlineAtMillis || durationMinutes <= 0 || startMillis > Long.MAX_VALUE - durationMinutes.toLong() * 60000L || startMillis + durationMinutes.toLong() * 60000L > current.deadlineAtMillis)) || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks().map { it.copy(plannedDurationMinutes = it.plannedDurationMinutes ?: 60) }, taskId).isNotEmpty()) return null
         val reminderOffset = current.scheduledAtMillis?.let { old -> current.reminderAtMillis?.minus(old) }
         val reminder = reminderOffset?.let { startMillis + it }
-        val changed = updateDetails(taskId, current.title, current.priority, startMillis, reminder, durationMinutes, current.deadlineAtMillis)
+        val changed = updateDetails(taskId, current.title, current.priority, startMillis, reminder, durationMinutes, current.deadlineAtMillis, current.urgency)
         return if (changed == 1) current.copy(scheduledAtMillis = startMillis, reminderAtMillis = reminder, plannedDurationMinutes = durationMinutes) else null
     }
 
