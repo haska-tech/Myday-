@@ -40,4 +40,23 @@ class MyDayBackupRestoreTest {
         assertEquals(session, database.timeTrackingDao().getSession())
         assertTrue(database.taskDao().taskExists(41L))
     }
+    @Test fun failedDatabaseRestoreRollsBackAndPreservesExistingRecords() = runBlocking {
+        val oldId = database.taskDao().insert(TaskEntity(title = "Keep this task"))
+        val replacement = TaskEntity(id = 41, title = "Must not be inserted")
+        val snapshot = MyDayBackupManager.decode(
+            MyDayBackupManager.encode(listOf(replacement), emptyList(), null)
+        )
+
+        database.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER reject_backup_task BEFORE INSERT ON tasks " +
+                "BEGIN SELECT RAISE(ABORT, 'simulated restore failure'); END"
+        )
+
+        val failure = runCatching { MyDayBackupManager.restoreRecords(database, snapshot) }
+        assertTrue("Restore should fail when SQLite rejects an inserted task", failure.isFailure)
+        assertEquals("Existing task must survive transaction rollback", "Keep this task",
+            database.taskDao().getTaskById(oldId)?.title)
+        assertNull(database.taskDao().getTaskById(41L))
+    }
+
 }
