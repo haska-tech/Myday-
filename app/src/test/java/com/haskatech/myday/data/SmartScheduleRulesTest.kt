@@ -16,5 +16,15 @@ class SmartScheduleRulesTest {
   assertEquals(slots.size,slots.distinct().size)
  }
  @Test fun criticalUrgencyOutranksNormalWhenOtherFactorsMatch(){val tasks=listOf(task(1,"Normal urgency","High",60,urgency="Normal"),task(2,"Critical urgency","High",60,urgency="Critical"));val p=SmartScheduleRules.analyze(tasks,start,zone);assertEquals(2L,p.recommendations.first().taskId);assertTrue(p.recommendations.first().reason.contains("critical urgency"))}
+ @Test fun flagsScheduledTaskThatFinishesAfterItsDeadlineAndSuggestsEarlierSlot(){
+  val deadline=start+3*3600000L
+  val lateStart=start+6*3600000L
+  val task=task(8,"Late scheduled task",duration=60,scheduled=lateStart,deadline=deadline)
+  val plan=SmartScheduleRules.analyze(listOf(task),start,zone)
+  assertTrue(plan.warnings.any{it.taskId==8L&&it.type==SmartWarningType.DEADLINE_INSUFFICIENT})
+  val suggestion=plan.recommendations.single()
+  assertTrue(suggestion.changesSchedule)
+  assertTrue(suggestion.proposedStartMillis!!+60*60000L<=deadline)
+ }
  @Test fun reportsNoSlotWhenDeadlineIsPast(){val p=SmartScheduleRules.analyze(listOf(task(1,"Expired",deadline=start-1)),start,zone);assertNull(p.recommendations.single().proposedStartMillis);assertTrue(p.warnings.any{it.type==SmartWarningType.NO_AVAILABLE_SLOT})}
 }

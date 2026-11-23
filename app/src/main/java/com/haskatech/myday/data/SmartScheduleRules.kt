@@ -35,8 +35,14 @@ object SmartScheduleRules {
   }
   active.filter{it.deadlineAtMillis!=null}.forEach{task->
    val duration=task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES
-   val available=freeMinutesUntil(task,active,nowMillis,task.deadlineAtMillis!!,zone,workdayStartHour,workdayEndHour)
-   if(available<duration)warnings+=SmartPlanWarning(SmartWarningType.DEADLINE_INSUFFICIENT,task.id,task.title,"Only $available free planning minutes remain before the deadline; about $duration are needed.")
+   val deadline=task.deadlineAtMillis!!
+   val available=freeMinutesUntil(task,active,nowMillis,deadline,zone,workdayStartHour,workdayEndHour)
+   val scheduledFinish=task.scheduledAtMillis?.let{safeEnd(it,duration)}
+   val scheduledMissesDeadline=scheduledFinish!=null&&scheduledFinish>deadline
+   if(available<duration||scheduledMissesDeadline){
+    val message=if(scheduledMissesDeadline)"The currently scheduled block finishes after its deadline; only $available free planning minutes remain before it." else "Only $available free planning minutes remain before the deadline; about $duration are needed."
+    warnings+=SmartPlanWarning(SmartWarningType.DEADLINE_INSUFFICIENT,task.id,task.title,message)
+   }
   }
   val ranked=active.sortedWith(compareByDescending<TaskEntity>{score(it,nowMillis,it.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES)}
    .thenBy{it.deadlineAtMillis?:Long.MAX_VALUE}.thenBy{it.createdAtMillis})
