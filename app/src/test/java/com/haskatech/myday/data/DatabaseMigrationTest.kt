@@ -26,6 +26,15 @@ class DatabaseMigrationTest {
         assertTrue(statements.single().startsWith("CREATE INDEX"))
     }
 
+    @Test fun migration9To10AddsNullableDeadlineColumn() {
+        val statements = mutableListOf<String>()
+        val database = recordingDatabase(statements)
+        assertEquals(9, MyDayDatabase.MIGRATION_9_10.startVersion)
+        assertEquals(10, MyDayDatabase.MIGRATION_9_10.endVersion)
+        MyDayDatabase.MIGRATION_9_10.migrate(database)
+        assertEquals(listOf("ALTER TABLE tasks ADD COLUMN deadlineAtMillis INTEGER"), statements)
+    }
+
     private fun recordingDatabase(statements: MutableList<String>) =
         Proxy.newProxyInstance(SupportSQLiteDatabase::class.java.classLoader,
             arrayOf(SupportSQLiteDatabase::class.java)) { _, method, args ->

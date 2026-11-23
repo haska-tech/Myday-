@@ -14,7 +14,7 @@ class MyDayBackupManagerTest {
             id = 7, title = "Clinic review", notes = "Bring files", scheduledAtMillis = 10_000L,
             reminderAtMillis = 9_000L, recurrenceRule = "Weekly", priority = "High",
             isTopPriority = true, isCompleted = false, createdAtMillis = 1_000L,
-            timeSpentMillis = 3_000L, recurrenceSeriesId = "series-7", plannedDurationMinutes = 45
+            timeSpentMillis = 3_000L, recurrenceSeriesId = "series-7", plannedDurationMinutes = 45, deadlineAtMillis = 20_000L
         ))
         val entries = listOf(TimeTrackingEntryEntity(3, 7, 2_000L, 5_000L, 3_000L))
         val session = TimeTrackingSessionEntity(1, 7, 6_000L)

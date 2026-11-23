@@ -1,0 +1,14 @@
+package com.haskatech.myday.data
+import org.junit.Assert.*
+import org.junit.Test
+import java.time.LocalDate
+import java.time.ZoneId
+class SmartScheduleRulesTest {
+ private val zone=ZoneId.of("Africa/Kampala");private val day=LocalDate.of(2026,11,24);private val start=day.atTime(8,0).atZone(zone).toInstant().toEpochMilli()
+ private fun task(id:Long,title:String,priority:String="Normal",duration:Int?=60,scheduled:Long?=null,deadline:Long?=null,top:Boolean=false)=TaskEntity(id=id,title=title,priority=priority,plannedDurationMinutes=duration,scheduledAtMillis=scheduled,deadlineAtMillis=deadline,isTopPriority=top)
+ @Test fun recommendsTopThreeWithReasonsAndUrgency(){val tasks=listOf(task(1,"Routine","Low",30),task(2,"Urgent report","High",60,deadline=start+12*3600000),task(3,"Normal task"),task(4,"Top task",top=true));val p=SmartScheduleRules.analyze(tasks,start,zone);assertEquals(3,p.recommendations.size);assertEquals(2L,p.recommendations.first().taskId);assertTrue(p.recommendations.first().reason.contains("High importance"));assertTrue(p.recommendations.first().reason.contains("due within 24 hours"))}
+ @Test fun proposesFirstOpeningAfterCommitment(){val p=SmartScheduleRules.analyze(listOf(task(1,"Meeting",duration=60,scheduled=start),task(2,"Work",duration=90)),start,zone);assertEquals(start+3600000L,p.recommendations.first{it.taskId==2L}.proposedStartMillis)}
+ @Test fun detectsOverlapOutsideHoursDeadlineRiskAndOverload(){val late=day.atTime(19,0).atZone(zone).toInstant().toEpochMilli();val tasks=listOf(task(1,"Evening",scheduled=late,duration=120),task(2,"Overlap A",scheduled=start,duration=180),task(3,"Overlap B",scheduled=start+3600000L,duration=180),task(4,"Impossible",duration=240,deadline=start+1800000L),task(5,"Heavy day",scheduled=start+4*3600000L,duration=420));val p=SmartScheduleRules.analyze(tasks,start,zone);assertTrue(p.warnings.any{it.type==SmartWarningType.OUTSIDE_WORK_HOURS});assertTrue(p.warnings.any{it.type==SmartWarningType.OVERLAP});assertTrue(p.warnings.any{it.type==SmartWarningType.DEADLINE_INSUFFICIENT});assertTrue(p.warnings.any{it.type==SmartWarningType.DAILY_OVERLOAD})}
+ @Test fun completedTasksExcludedAndGoodSchedulePreserved(){val done=task(1,"Done",scheduled=start,duration=480).copy(isCompleted=true);val planned=task(2,"Planned",scheduled=start+7200000L,duration=30);val p=SmartScheduleRules.analyze(listOf(done,planned),start,zone);assertEquals(listOf(2L),p.recommendations.map{it.taskId});assertEquals(planned.scheduledAtMillis,p.recommendations.single().proposedStartMillis);assertFalse(p.recommendations.single().changesSchedule)}
+ @Test fun reportsNoSlotWhenDeadlineIsPast(){val p=SmartScheduleRules.analyze(listOf(task(1,"Expired",deadline=start-1)),start,zone);assertNull(p.recommendations.single().proposedStartMillis);assertTrue(p.warnings.any{it.type==SmartWarningType.NO_AVAILABLE_SLOT})}
+}
