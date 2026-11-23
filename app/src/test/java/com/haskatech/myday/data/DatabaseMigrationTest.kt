@@ -70,7 +70,9 @@ class DatabaseMigrationTest {
         }
     }
 
-    private fun normalizeSql(sql: String) = sql.replace(Regex("\\\\s+"), " ").trim()\n\n    private fun recordingDatabase(statements: MutableList<String>) =
+    private fun normalizeSql(sql: String) = sql.replace(Regex("\\s+"), " ").trim()
+
+    private fun recordingDatabase(statements: MutableList<String>) =
         Proxy.newProxyInstance(SupportSQLiteDatabase::class.java.classLoader,
             arrayOf(SupportSQLiteDatabase::class.java)) { _, method, args ->
             if (method.name == "execSQL") statements += args?.get(0) as String
