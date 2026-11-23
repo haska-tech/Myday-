@@ -13,22 +13,22 @@ abstract class MyDayDatabase : RoomDatabase() {
     abstract fun timeTrackingDao(): TimeTrackingDao
 
     companion object {
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tasks ADD COLUMN isTopPriority INTEGER NOT NULL DEFAULT 0")
             }
         }
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tasks ADD COLUMN reminderAtMillis INTEGER")
             }
         }
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tasks ADD COLUMN recurrenceRule TEXT NOT NULL DEFAULT 'None'")
             }
         }
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tasks ADD COLUMN timeSpentMillis INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("""
@@ -41,7 +41,7 @@ abstract class MyDayDatabase : RoomDatabase() {
                 """.trimIndent())
             }
         }
-        private val MIGRATION_5_6 = object : Migration(5, 6) {
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS time_tracking_entry (
@@ -55,7 +55,7 @@ abstract class MyDayDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_time_tracking_entry_startedAtMillis ON time_tracking_entry(startedAtMillis)")
             }
         }
-        private val MIGRATION_6_7 = object : Migration(6, 7) {
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tasks ADD COLUMN recurrenceSeriesId TEXT")
             }
