@@ -29,4 +29,13 @@ class WidgetLayoutRulesTest {
         val sizes = WidgetLayoutRules.responsiveBreakpoints(260f, 300f, 180f, 220f)
         assertEquals(WidgetLayoutSize.LARGE, sizes.first().layout)
     }
+    @Test fun doesNotOfferLayoutsThatDoNotFitTheMaximumSize() {
+        val compact = WidgetLayoutRules.responsiveBreakpoints(110f, 150f, 110f, 130f)
+        assertEquals(1, compact.size)
+        assertEquals(WidgetLayoutSize.SMALL, compact.first().layout)
+
+        val mediumToLarge = WidgetLayoutRules.responsiveBreakpoints(180f, 260f, 110f, 180f)
+        assertEquals(listOf(WidgetLayoutSize.MEDIUM, WidgetLayoutSize.LARGE), mediumToLarge.map { it.layout })
+    }
+
 }
