@@ -38,6 +38,6 @@ object WidgetRefreshRules {
 }
 
 object WidgetQuickAddRules {
-    const val ACTION_QUICK_ADD = "com.haskatech.myday.widget.QUICK_ADD"
-    fun shouldOpenAddDialog(action: String?): Boolean = action == ACTION_QUICK_ADD
+    const val EXTRA_OPEN_QUICK_ADD = "com.haskatech.myday.OPEN_QUICK_ADD"
+    fun shouldOpenAddDialog(requested: Boolean): Boolean = requested
 }
