@@ -1002,47 +1002,66 @@ private fun WeeklyTimetable(
 
 @Composable
 private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, entries: List<TimeTrackingEntryEntity>, nowMillis: Long, modifier: Modifier = Modifier) {
-    val done = tasks.count { it.isCompleted }
-    val percent = if (tasks.isEmpty()) 0 else done * 100 / tasks.size
-    val trackedTotal = tasks.sumOf { it.timeSpentMillis } + if (tracking?.startedAtMillis != null) TimeTrackingRules.elapsedMillis(tracking.startedAtMillis, nowMillis) else 0L
-    val reportZone = PlannerTime.zoneId()
-    val today = java.time.LocalDate.now(reportZone)
-    val weekStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-    val intervals = entries.map { com.haskatech.myday.focus.TimeInterval(it.startedAtMillis, it.endedAtMillis) } +
-        listOfNotNull(tracking?.startedAtMillis?.let { com.haskatech.myday.focus.TimeInterval(it, nowMillis) })
-    val dailyTotals = TimeTrackingRules.durationByDate(intervals, reportZone)
-    val todayTracked = dailyTotals[today] ?: 0L
-    val weekTracked = (0L..6L).sumOf { dailyTotals[weekStart.plusDays(it)] ?: 0L }
+    var selectedRange by remember { mutableStateOf(com.haskatech.myday.data.AnalyticsRange.WEEK) }
+    val zone = PlannerTime.zoneId()
+    val report = remember(tasks, entries, tracking?.startedAtMillis, nowMillis, selectedRange, zone) {
+        com.haskatech.myday.data.ProductivityAnalyticsRules.calculate(tasks, entries, tracking?.startedAtMillis, nowMillis, zone, selectedRange)
+    }
+    val activeNow = tasks.count { !it.isCompleted }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Insights", color = Navy, style = MaterialTheme.typography.headlineLarge)
-        Text("See where your time and effort go.", color = Muted, fontSize = 14.sp)
-        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-            Column(Modifier.padding(18.dp)) {
-                Text("Time tracked", color = Navy, fontWeight = FontWeight.Bold)
-                Text(TimeTrackingRules.formatDuration(trackedTotal), color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Text("Lifetime total across tasks", color = Muted, fontSize = 12.sp)
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Today", color = Muted, fontSize = 12.sp)
-                        Text(TimeTrackingRules.formatDuration(todayTracked), color = Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text("This week · Mon–Sun", color = Muted, fontSize = 12.sp)
-                        Text(TimeTrackingRules.formatDuration(weekTracked), color = Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text("A local view of your work and focus.", color = Muted, fontSize = 14.sp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            com.haskatech.myday.data.AnalyticsRange.values().forEach { range ->
+                FilterChip(selected = selectedRange == range, onClick = { selectedRange = range }, label = { Text(range.label, fontSize = 10.sp) })
+            }
+        }
+        Text("${report.rangeStart.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))} – ${report.rangeEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}", color = Muted, fontSize = 11.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            AnalyticsMetricCard("Tasks created", report.tasksCreated.toString(), Modifier.weight(1f))
+            AnalyticsMetricCard("Cohort complete", "${report.completionRatePercent}%", Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            AnalyticsMetricCard("Tracked time", TimeTrackingRules.formatDuration(report.trackedMillis), Modifier.weight(1f))
+            AnalyticsMetricCard("Overdue active", report.overdueActive.toString(), Modifier.weight(1f))
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Daily focus trend", color = Navy, fontWeight = FontWeight.Bold)
+                Text("Tracked time per local calendar day", color = Muted, fontSize = 11.sp)
+                if (report.daily.none { it.trackedMillis > 0L }) Text("No tracked focus time in this period yet.", color = Muted, fontSize = 12.sp)
+                else {
+                    val maxValue = report.daily.maxOf { it.trackedMillis }.coerceAtLeast(1L)
+                    report.daily.takeLast(14).forEach { point ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(point.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d")), color = Muted, fontSize = 10.sp, modifier = Modifier.width(48.dp))
+                            Box(Modifier.weight(1f).height(10.dp).background(Paper, RoundedCornerShape(8.dp))) {
+                                Box(Modifier.fillMaxWidth(point.trackedMillis.toFloat() / maxValue).height(10.dp).background(Lime, RoundedCornerShape(8.dp)))
+                            }
+                            Text(TimeTrackingRules.formatDuration(point.trackedMillis), color = Navy, fontSize = 10.sp, modifier = Modifier.width(48.dp))
+                        }
                     }
                 }
             }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White)) {
-            Column(Modifier.padding(18.dp)) {
-                Text("Task completion", color = Navy, fontWeight = FontWeight.Bold)
-                Text("$done of ${tasks.size} tasks completed", color = Muted)
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth(), color = Lime, trackColor = Paper)
-                Text("$percent%", color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Task outcomes", color = Navy, fontWeight = FontWeight.Bold)
+                Text("${report.completedFromCohort} of ${report.tasksCreated} tasks created in this period are currently complete.", color = Muted, fontSize = 12.sp)
+                LinearProgressIndicator(progress = { report.completionRatePercent / 100f }, modifier = Modifier.fillMaxWidth(), color = Lime, trackColor = Paper)
+                Text("$activeNow active tasks across your workspace", color = Muted, fontSize = 11.sp)
             }
+        }
+        Text("Completion rate compares current task status for tasks created in the selected period. MyDay does not yet store completion timestamps, so historical completion dates are not inferred. Tracked time is split using your device timezone.", color = Muted, fontSize = 10.sp)
+    }
+}
+@Composable
+private fun AnalyticsMetricCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(modifier, colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(17.dp)) {
+        Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, color = Muted, fontSize = 10.sp)
+            Text(value, color = Navy, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
