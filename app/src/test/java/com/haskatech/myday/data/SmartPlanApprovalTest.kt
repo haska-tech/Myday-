@@ -16,7 +16,7 @@ class SmartPlanApprovalTest {
  @After fun tearDown(){db.close()}
  @Test fun scheduleChangesOnlyAfterExplicitApproval()=runBlocking{val id=db.taskDao().insert(TaskEntity(title="Unscheduled"));assertNull(db.taskDao().getTaskById(id)!!.scheduledAtMillis);val start=java.time.LocalDate.of(2026,11,24).atTime(9,0).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();val result=db.taskDao().applyApprovedSchedule(id,start,45);assertEquals(start,result!!.scheduledAtMillis);assertEquals(45,result.plannedDurationMinutes)}
  @Test fun rejectsSlotsOutsideWorkHoursAndBeyondDeadline() = runBlocking {
-  val date=java.time.LocalDate.of(2026,11,24);val zone=java.time.ZoneId.of("Africa/Kampala")
+  val date=java.time.LocalDate.of(2026,11,24);val zone=java.time.ZoneId.systemDefault()
   val morning=date.atTime(9,0).atZone(zone).toInstant().toEpochMilli()
   val deadline=morning+30*60000L
   val dueId=db.taskDao().insert(TaskEntity(title="Due soon",deadlineAtMillis=deadline))
