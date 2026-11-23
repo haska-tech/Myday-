@@ -56,6 +56,7 @@ private val Paper = Color(0xFFF4F6F9)
 private val Muted = Color(0xFF748094)
 
 class MainActivity : ComponentActivity() {
+    companion object { const val ACTION_QUICK_ADD = com.haskatech.myday.widget.WidgetQuickAddRules.ACTION_QUICK_ADD }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -75,7 +76,7 @@ class MainActivity : ComponentActivity() {
                     primaryContainer = Color(0xFFEAF2D4)
                 )
             ) {
-                MyDayApp()
+                MyDayApp(openQuickAddInitially = com.haskatech.myday.widget.WidgetQuickAddRules.shouldOpenAddDialog(intent?.action))
             }
         }
     }
@@ -83,9 +84,9 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MyDayApp(tasksViewModel: TasksViewModel = viewModel()) {
+private fun MyDayApp(openQuickAddInitially: Boolean = false, tasksViewModel: TasksViewModel = viewModel()) {
     var tab by remember { mutableIntStateOf(0) }
-    var showAddDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(openQuickAddInitially) }
     var taskBeingEdited by remember { mutableStateOf<TaskEntity?>(null) }
     var showTopThreeLimit by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -1030,7 +1031,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         }
         SettingsGroup("ABOUT") {
             SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
-            SettingsRow(Icons.Default.Info, "Version", "0.2.5 · Early access")
+            SettingsRow(Icons.Default.Info, "Version", "0.2.8 · Early access")
         }
         Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
