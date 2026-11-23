@@ -201,7 +201,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             3 -> SmartPlanScreen(tasks, nowMillis,
                 { taskId, start, duration -> tasksViewModel.approveSuggestedTime(taskId, start, duration) },
                 { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) },
-                { taskId -> tasks.firstOrNull { it.id == taskId }?.let { taskBeingEdited = it } }, Modifier.padding(padding)
+                { taskId -> tasks.firstOrNull { it.id == taskId }?.let { taskBeingEdited = it } }, Modifier.padding(padding))
             4 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
             else -> SettingsScreen(Modifier.padding(padding))
         }
