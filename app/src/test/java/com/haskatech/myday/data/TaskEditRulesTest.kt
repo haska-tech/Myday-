@@ -29,7 +29,7 @@ class TaskEditRulesTest {
     @Test fun validatesDeadlinesAgainstScheduleAndCurrentTime() {
         assertFalse(TaskEditRules.isValid("Task", 200L, null, 100L, null, null, 150L, null))
         assertFalse(TaskEditRules.isValid("Task", null, null, 100L, null, null, 90L, null))
-        assertTrue(TaskEditRules.isValid("Task", 200L, null, 100L, 200L, null, 150L, 150L))
+        assertTrue(TaskEditRules.isValid("Task", 80L, null, 100L, 80L, null, 90L, 90L))
     }
 
     @Test fun allowsUnscheduledTasksWithoutReminders() {
