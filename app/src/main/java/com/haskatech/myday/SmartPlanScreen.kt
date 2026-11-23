@@ -117,7 +117,7 @@ fun SmartPlanScreen(
             }
         }
         if (visible.isEmpty()) {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(18.dp)) {
                 Text(if (plan.recommendations.isEmpty()) "No active tasks to prioritise. Add tasks to build a plan."
                     else "All current recommendations are deferred. You can still plan tasks manually.",
                     modifier = Modifier.padding(18.dp), color = MyDayColors.Muted, fontSize = 13.sp)
@@ -156,7 +156,7 @@ fun SmartPlanScreen(
 
 @Composable
 private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long, Int) -> Unit, onEditTask: (Long) -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp),
+    Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
