@@ -54,11 +54,6 @@ import com.haskatech.myday.focus.VoiceCaptureRules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val Navy = Color(0xFF14243A)
-private val Lime = Color(0xFFB7E445)
-private val Paper = Color(0xFFF4F6F9)
-private val Muted = Color(0xFF748094)
-
 class MainActivity : ComponentActivity() {
     private val quickAddRequest = mutableIntStateOf(0)
 
@@ -66,22 +61,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false)) quickAddRequest.intValue++
         setContent {
-            MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Navy,
-                    onPrimary = Color.White,
-                    secondary = Lime,
-                    onSecondary = Navy,
-                    background = Paper,
-                    onBackground = Navy,
-                    surface = Color.White,
-                    onSurface = Navy,
-                    surfaceVariant = Color(0xFFEDF1F5),
-                    onSurfaceVariant = Muted,
-                    outline = Color(0xFFE3E8EF),
-                    primaryContainer = Color(0xFFEAF2D4)
-                )
-            ) {
+            MyDayTheme {
                 MyDayApp(openQuickAddRequest = quickAddRequest.intValue)
             }
         }
@@ -463,7 +443,7 @@ private fun TaskRow(
                 }
             }
             if (!task.isCompleted) {
-                HorizontalDivider(color = Color(0xFFF0F2F5))
+                HorizontalDivider(color = MyDayColors.SoftNeutral)
                 Row(Modifier.fillMaxWidth().padding(start = 44.dp, top = 3.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -564,7 +544,7 @@ private fun AddTaskDialog(
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Navy, focusedLabelColor = Navy, cursorColor = Navy)
                     )
-                    Surface(shape = RoundedCornerShape(13.dp), color = Color(0xFFF0F3F6)) {
+                    Surface(shape = RoundedCornerShape(13.dp), color = MyDayColors.SoftNeutralAlt) {
                     val voiceCaptureLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.StartActivityForResult()
                     ) { result ->
@@ -670,18 +650,18 @@ private fun AddTaskDialog(
                 }
                 if (scheduledAt != null) {
                     if (conflicts.isNotEmpty()) {
-                        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)), shape = RoundedCornerShape(12.dp)) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.WarningBackground), shape = RoundedCornerShape(12.dp)) {
                             Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Schedule conflict detected", color = Color(0xFF8A4B08), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Schedule conflict detected", color = MyDayColors.WarningText, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 conflicts.forEach { conflict ->
                                     Text(
                                         "Overlaps with ${conflict.title} · " +
                                             DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.startMillis)) +
                                             "–" + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.endMillis)),
-                                        color = Color(0xFF8A4B08), fontSize = 11.sp
+                                        color = MyDayColors.WarningText, fontSize = 11.sp
                                     )
                                 }
-                                Text("You can still save, but review the overlapping time blocks.", color = Color(0xFF8A4B08), fontSize = 10.sp)
+                                Text("You can still save, but review the overlapping time blocks.", color = MyDayColors.WarningText, fontSize = 10.sp)
                             }
                         }
                     }
@@ -815,11 +795,11 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
                             modifier = Modifier.weight(1f).padding(2.dp).height(54.dp),
                             color = when {
                                 date == selectedDate -> Lime
-                                date == java.time.LocalDate.now(zone) -> Color(0xFFEAF2D4)
+                                date == java.time.LocalDate.now(zone) -> MyDayColors.SoftLime
                                 else -> Color.White
                             },
                             shape = RoundedCornerShape(12.dp),
-                            border = if (date == selectedDate) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE8ECF1))
+                            border = if (date == selectedDate) null else androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.Divider)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center) {
@@ -827,7 +807,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
                                     fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal)
                                 if (count > 0) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     repeat(count.coerceAtMost(3)) {
-                                        Box(Modifier.size(3.dp).background(if (date == selectedDate) Navy else Color(0xFF82A92D), RoundedCornerShape(50)))
+                                        Box(Modifier.size(3.dp).background(if (date == selectedDate) Navy else MyDayColors.LimeDeep, RoundedCornerShape(50)))
                                     }
                                 }
                             }
@@ -908,7 +888,7 @@ private fun WeeklyTimetable(
         modifier = Modifier.fillMaxWidth().height(560.dp),
         color = Color.White,
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE7EBF0))
+        border = androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.BorderStrong)
     ) {
         Column(Modifier.fillMaxSize().verticalScroll(verticalState)) {
             Row(Modifier.horizontalScroll(horizontalState)) {
@@ -939,7 +919,7 @@ private fun WeeklyTimetable(
                             modifier = Modifier.fillMaxWidth().height(58.dp).padding(end = 1.dp, bottom = 4.dp),
                             color = when {
                                 isSelected -> Lime
-                                isToday -> Color(0xFFEAF2D4)
+                                isToday -> MyDayColors.SoftLime
                                 else -> Color(0xFFF4F6F9)
                             },
                             shape = RoundedCornerShape(10.dp)
@@ -960,7 +940,7 @@ private fun WeeklyTimetable(
                             Box(
                                 Modifier.fillMaxWidth().height(72.dp)
                                     .padding(end = 1.dp)
-                                    .background(if (isToday) Color(0xFFFBFDF7) else Color.White)
+                                    .background(if (isToday) MyDayColors.PaperTint else Color.White)
                                     .then(Modifier)
                             ) {
                                 Column(
@@ -970,7 +950,7 @@ private fun WeeklyTimetable(
                                     hourTasks.take(2).forEach { task ->
                                         Surface(
                                             modifier = Modifier.fillMaxWidth().height(30.dp),
-                                            color = if (task.isCompleted) Color(0xFFF0F2F4) else Color(0xFFEAF2D4),
+                                            color = if (task.isCompleted) MyDayColors.SurfaceMuted else MyDayColors.SoftLime,
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Column(Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
@@ -997,7 +977,7 @@ private fun WeeklyTimetable(
                                 Modifier.fillMaxWidth().height(1.dp)
                             ) {
                                 drawLine(
-                                    color = Color(0xFFE9EDF2),
+                                    color = MyDayColors.SurfaceSubtle,
                                     start = androidx.compose.ui.geometry.Offset.Zero,
                                     end = androidx.compose.ui.geometry.Offset(size.width, 0f),
                                     strokeWidth = 1.dp.toPx()
@@ -1069,7 +1049,7 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
         shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFEAF2D4), modifier = Modifier.size(58.dp)) {
+            Surface(shape = RoundedCornerShape(18.dp), color = MyDayColors.SoftLime, modifier = Modifier.size(58.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(28.dp)) }
             }
             Text(title, color = Navy, fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -1187,7 +1167,7 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 @Composable
 private fun SettingsRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(shape = RoundedCornerShape(11.dp), color = Color(0xFFF0F3F6), modifier = Modifier.size(37.dp)) {
+        Surface(shape = RoundedCornerShape(11.dp), color = MyDayColors.SoftNeutralAlt, modifier = Modifier.size(37.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(19.dp)) }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
