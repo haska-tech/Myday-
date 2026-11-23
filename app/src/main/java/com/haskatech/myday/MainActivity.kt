@@ -260,7 +260,7 @@ private fun TodayScreen(
         }
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
@@ -287,9 +287,9 @@ private fun TodayScreen(
                     Text("TODAY'S TOP 3 · ${topTasks.size}/3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
                     if (topTasks.isEmpty()) {
-                        Text("Choose up to three tasks that matter most.", color = Color.White, fontSize = 16.sp)
+                        Text("Choose up to three tasks that matter most.", color = MyDayColors.White, fontSize = 16.sp)
                     } else {
-                        topTasks.forEach { Text("• ${it.title}", color = Color.White, fontSize = 15.sp) }
+                        topTasks.forEach { Text("• ${it.title}", color = MyDayColors.White, fontSize = 15.sp) }
                     }
                     Text("Tap TOP 3 beside a task to add it here.", color = MyDayColors.OnNavyMuted, fontSize = 12.sp)
                 }
@@ -415,7 +415,7 @@ private fun TaskRow(
     } else 0L
     Card(
         Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -529,7 +529,7 @@ private fun AddTaskDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(26.dp),
-        containerColor = Color.White,
+        containerColor = MyDayColors.White,
         tonalElevation = 4.dp,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -801,7 +801,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
                             color = when {
                                 date == selectedDate -> Lime
                                 date == java.time.LocalDate.now(zone) -> MyDayColors.SoftLime
-                                else -> Color.White
+                                else -> MyDayColors.White
                             },
                             shape = RoundedCornerShape(12.dp),
                             border = if (date == selectedDate) null else androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.Divider)
@@ -840,7 +840,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     entries.forEach { (date, task) ->
-                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White),
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
                             shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                             Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.width(76.dp)) {
@@ -891,7 +891,7 @@ private fun WeeklyTimetable(
     Spacer(Modifier.height(8.dp))
     Surface(
         modifier = Modifier.fillMaxWidth().height(560.dp),
-        color = Color.White,
+        color = MyDayColors.White,
         shape = RoundedCornerShape(18.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.BorderStrong)
     ) {
@@ -945,7 +945,7 @@ private fun WeeklyTimetable(
                             Box(
                                 Modifier.fillMaxWidth().height(72.dp)
                                     .padding(end = 1.dp)
-                                    .background(if (isToday) MyDayColors.PaperTint else Color.White)
+                                    .background(if (isToday) MyDayColors.PaperTint else MyDayColors.White)
                                     .then(Modifier)
                             ) {
                                 Column(
@@ -1018,7 +1018,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
         Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Insights", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
         Text("See where your time and effort go.", color = Muted, fontSize = 14.sp)
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(Modifier.padding(18.dp)) {
                 Text("Time tracked", color = Navy, fontWeight = FontWeight.Bold)
                 Text(TimeTrackingRules.formatDuration(trackedTotal), color = Navy, fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -1036,7 +1036,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
                 }
             }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White)) {
             Column(Modifier.padding(18.dp)) {
                 Text("Task completion", color = Navy, fontWeight = FontWeight.Bold)
                 Text("$done of ${tasks.size} tasks completed", color = Muted)
@@ -1050,7 +1050,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
 
 @Composable
 private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, message: String) {
-    Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White),
+    Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
         shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -1162,7 +1162,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(title, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp),
+        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(18.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(content = content, modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp))
         }
