@@ -24,4 +24,9 @@ class WidgetLayoutRulesTest {
     @Test fun fixedSizeWidgetUsesOnlyOneBreakpoint() {
         assertEquals(1, WidgetLayoutRules.responsiveBreakpoints(110f, 110f, 110f, 110f).size)
     }
+
+    @Test fun largeMinimumSizeStartsWithLargeLayout() {
+        val sizes = WidgetLayoutRules.responsiveBreakpoints(260f, 300f, 180f, 220f)
+        assertEquals(WidgetLayoutSize.LARGE, sizes.first().layout)
+    }
 }
