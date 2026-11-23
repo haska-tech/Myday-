@@ -17,12 +17,14 @@ object WidgetLayoutRules {
         val maxH = maxHeightDp.coerceAtLeast(minH)
         val widthRange = maxW - minW
         val heightRange = maxH - minH
-        val result = mutableListOf(WidgetBreakpoint(minW, minH, WidgetLayoutSize.SMALL))
-        val medium = WidgetBreakpoint(minW + widthRange * 0.45f, minH + heightRange * 0.25f, WidgetLayoutSize.MEDIUM)
-        if (medium.widthDp > minW || medium.heightDp > minH) result += medium
-        val large = WidgetBreakpoint(minW + widthRange * 0.75f, minH + heightRange * 0.70f, WidgetLayoutSize.LARGE)
-        val last = result.last()
-        if (large.widthDp > last.widthDp || large.heightDp > last.heightDp) result += large
+        val initialLayout = legacyLayout(minW.toInt(), minH.toInt())
+        val result = mutableListOf(WidgetBreakpoint(minW, minH, initialLayout))
+        if (initialLayout == WidgetLayoutSize.SMALL && (widthRange > 0f || heightRange > 0f)) {
+            result += WidgetBreakpoint(minW + widthRange * 0.45f, minH + heightRange * 0.25f, WidgetLayoutSize.MEDIUM)
+        }
+        if (initialLayout != WidgetLayoutSize.LARGE && (widthRange > 0f || heightRange > 0f)) {
+            result += WidgetBreakpoint(minW + widthRange * 0.75f, minH + heightRange * 0.70f, WidgetLayoutSize.LARGE)
+        }
         return result
     }
 }
