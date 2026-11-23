@@ -18,10 +18,10 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".widget.WidgetTaskActionReceiver" android:enabled="true" android:exported="false" />
         <receiver android:name=".widget.MyDayWidgetProvider" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.haskatech.myday.widget.REFRESH" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/myday_widget_info" />
         </receiver>
