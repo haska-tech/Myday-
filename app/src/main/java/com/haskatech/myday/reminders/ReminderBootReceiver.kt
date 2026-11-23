@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.haskatech.myday.data.MyDayDatabase
 import com.haskatech.myday.focus.PomodoroTimerManager
+import com.haskatech.myday.widget.MyDayWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -32,6 +33,7 @@ class ReminderBootReceiver : BroadcastReceiver() {
                             task.reminderAtMillis!!
                         )
                     }
+                MyDayWidgetProvider.requestRefresh(context)
             } finally {
                 pendingResult.finish()
             }
