@@ -335,7 +335,7 @@ private fun TasksScreen(
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Tasks", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("Tasks", color = Navy, style = MaterialTheme.typography.headlineLarge)
         Text("Everything you need to move forward.", color = Muted, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -746,7 +746,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 18.dp)) {
         Text("YOUR SCHEDULE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Calendar", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("Calendar", color = Navy, style = MaterialTheme.typography.headlineLarge)
         Text("Make space for what matters.", color = Muted, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1015,7 +1015,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     val weekTracked = (0L..6L).sumOf { dailyTotals[weekStart.plusDays(it)] ?: 0L }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Insights", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+        Text("Insights", color = Navy, style = MaterialTheme.typography.headlineLarge)
         Text("See where your time and effort go.", color = Muted, fontSize = 14.sp)
         Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(Modifier.padding(18.dp)) {
@@ -1082,7 +1082,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-            Text("Settings", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp)
+            Text("Settings", color = Navy, style = MaterialTheme.typography.headlineLarge)
             Text("A calmer way to plan, built around you.", color = Muted, fontSize = 14.sp)
         }
         SettingsGroup("YOUR EXPERIENCE") {
