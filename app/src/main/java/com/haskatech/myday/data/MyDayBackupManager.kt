@@ -66,7 +66,16 @@ object MyDayBackupManager {
             ?: throw IllegalStateException("Could not open the selected backup file.")
         val snapshot = input.bufferedReader(Charsets.UTF_8).use { decode(it.readText()) }
         val database = MyDayDatabase.getDatabase(context)
-        val oldTasks = database.withTransaction {
+        val oldTasks = restoreRecords(database, snapshot)
+        oldTasks.forEach { ReminderScheduler.cancel(context, it.id) }
+        val now = System.currentTimeMillis()
+        snapshot.tasks.filter { !it.isCompleted && it.reminderAtMillis != null && it.reminderAtMillis > now }
+            .forEach { ReminderScheduler.schedule(context, it.id, it.title, it.reminderAtMillis!!) }
+        MyDayWidgetProvider.requestRefresh(context)
+    }
+
+    internal suspend fun restoreRecords(database: MyDayDatabase, snapshot: BackupSnapshot): List<TaskEntity> =
+        database.withTransaction {
             val existing = database.taskDao().getAllTasks()
             database.timeTrackingDao().clearEntries()
             database.taskDao().clearAllTasks()
@@ -76,12 +85,6 @@ object MyDayBackupManager {
             snapshot.session?.let { database.timeTrackingDao().saveSession(it) }
             existing
         }
-        oldTasks.forEach { ReminderScheduler.cancel(context, it.id) }
-        val now = System.currentTimeMillis()
-        snapshot.tasks.filter { !it.isCompleted && it.reminderAtMillis != null && it.reminderAtMillis > now }
-            .forEach { ReminderScheduler.schedule(context, it.id, it.title, it.reminderAtMillis!!) }
-        MyDayWidgetProvider.requestRefresh(context)
-    }
 
     private fun TaskEntity.toJson() = JSONObject().put("id", id).put("title", title).put("notes", notes)
         .putNullableLong("scheduledAtMillis", scheduledAtMillis).putNullableLong("reminderAtMillis", reminderAtMillis)
