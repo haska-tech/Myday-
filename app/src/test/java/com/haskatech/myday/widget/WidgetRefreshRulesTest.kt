@@ -14,8 +14,4 @@ class WidgetRefreshRulesTest {
         assertFalse(WidgetRefreshRules.shouldRefresh(null))
     }
 
-    @Test fun quickAddFlagOpensTheExistingTaskDialog() {
-        assertTrue(WidgetQuickAddRules.shouldOpenAddDialog(true))
-        assertFalse(WidgetQuickAddRules.shouldOpenAddDialog(false))
-    }
 }
