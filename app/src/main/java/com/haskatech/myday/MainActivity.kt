@@ -125,7 +125,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             TopAppBar(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text("MyDay", color = Navy, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, letterSpacing = (-0.4).sp)
+                        Text("MyDay", color = Navy, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
                         Text("PLAN WITH PURPOSE", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                     }
                 },
@@ -144,7 +144,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White, tonalElevation = 6.dp) {
+            NavigationBar(containerColor = MyDayColors.White, tonalElevation = 6.dp) {
                 labels.forEachIndexed { index, label ->
                     NavigationBarItem(
                         selected = tab == index,
@@ -254,7 +254,7 @@ private fun TodayScreen(
                     .uppercase(Locale.getDefault()),
                 color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
             )
-            Text("Make today count.", color = Navy, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
+            Text("Make today count.", color = Navy, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
             Text("A little progress, every day.", color = Muted, fontSize = 14.sp)
 
         }
@@ -291,7 +291,7 @@ private fun TodayScreen(
                     } else {
                         topTasks.forEach { Text("• ${it.title}", color = Color.White, fontSize = 15.sp) }
                     }
-                    Text("Tap TOP 3 beside a task to add it here.", color = Color.LightGray, fontSize = 12.sp)
+                    Text("Tap TOP 3 beside a task to add it here.", color = MyDayColors.OnNavyMuted, fontSize = 12.sp)
                 }
             }
         }
@@ -428,7 +428,7 @@ private fun TaskRow(
                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                     Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Surface(color = Color(0xFFEDF1F5), shape = RoundedCornerShape(6.dp)) {
+                        Surface(color = MyDayColors.SurfaceVariant, shape = RoundedCornerShape(6.dp)) {
                             Text(task.priority, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                         }
@@ -925,7 +925,7 @@ private fun WeeklyTimetable(
                             color = when {
                                 isSelected -> Lime
                                 isToday -> MyDayColors.SoftLime
-                                else -> Color(0xFFF4F6F9)
+                                else -> MyDayColors.Paper
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
