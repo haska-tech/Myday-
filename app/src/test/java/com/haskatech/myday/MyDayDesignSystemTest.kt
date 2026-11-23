@@ -21,4 +21,13 @@ class MyDayDesignSystemTest {
         assertEquals(Color.White, MyDayColors.White)
         assertEquals(Color(0xFFD8E0EA), MyDayColors.OnNavyMuted)
     }
+
+    @Test
+    fun sharedTypographyDefinesConsistentPremiumHeadingAndBodyScale() {
+        assertEquals(29, MyDayTypography.headlineLarge.fontSize.value.toInt())
+        assertEquals(35, MyDayTypography.headlineLarge.lineHeight.value.toInt())
+        assertEquals(21, MyDayTypography.titleLarge.fontSize.value.toInt())
+        assertEquals(14, MyDayTypography.bodyMedium.fontSize.value.toInt())
+        assertEquals(12, MyDayTypography.bodySmall.fontSize.value.toInt())
+    }
 }
