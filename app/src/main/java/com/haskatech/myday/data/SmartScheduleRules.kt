@@ -50,13 +50,14 @@ object SmartScheduleRules {
    task.deadlineAtMillis?.let{val delta=it-nowMillis;reasons+=when{delta<0->"deadline overdue";delta<=86400000L->"due within 24 hours";delta<=259200000L->"due within 3 days";else->"deadline scheduled"}}?:run{reasons+="no deadline set"}
    reasons+=if(task.plannedDurationMinutes==null)"estimated at $duration minutes" else "$duration-minute task"
    if(warnings.any{it.taskId==task.id&&it.type==SmartWarningType.DEADLINE_INSUFFICIENT})reasons+="deadline may be difficult to meet"
-   if(proposed==null)warnings+=SmartPlanWarning(SmartWarningType.NO_AVAILABLE_SLOT,task.id,task.title,"No suitable opening was found in the next $horizonDays days.")
+   if(proposed==null){reasons+="no suitable opening in the planning window";warnings+=SmartPlanWarning(SmartWarningType.NO_AVAILABLE_SLOT,task.id,task.title,"No suitable opening was found in the next $horizonDays days.")}else reasons+="fits available time"
    else if(existing==null||hasIssue){
     val index=planningTasks.indexOfFirst{it.id==task.id}
     if(index>=0)planningTasks[index]=task.copy(scheduledAtMillis=proposed,plannedDurationMinutes=duration)
    }
-   SmartRecommendation(task.id,task.title,score(task,nowMillis,duration),reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing,task.deadlineAtMillis)
-  }.take(3)
+   val availabilityBonus=if(proposed==null)-20 else when{proposed-nowMillis<=3600000L->12;proposed-nowMillis<=28800000L->6;else->0}
+   SmartRecommendation(task.id,task.title,score(task,nowMillis,duration)+availabilityBonus,reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing,task.deadlineAtMillis)
+  }.sortedByDescending{it.score}.take(3)
   return SmartPlan(recommendations,warnings.distinct(),freeMinutesOnDate(null,active,today,nowMillis,zone,workdayStartHour,workdayEndHour).toInt())
  }
  private fun score(task:TaskEntity,now:Long,duration:Int):Int {
