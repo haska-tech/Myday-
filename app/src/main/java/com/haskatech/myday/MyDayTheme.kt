@@ -7,7 +7,10 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * MyDay's single visual source of truth.
@@ -19,6 +22,7 @@ object MyDayColors {
     val Paper = Color(0xFFF4F6F9)
     val Muted = Color(0xFF748094)
     val White = Color.White
+    val OnNavyMuted = Color(0xFFD8E0EA)
     val SurfaceVariant = Color(0xFFEDF1F5)
     val Border = Color(0xFFE3E8EF)
     val SoftLime = Color(0xFFEAF2D4)
@@ -49,6 +53,26 @@ private val MyDayColorScheme = lightColorScheme(
     primaryContainer = MyDayColors.SoftLime
 )
 
+
+private val MyDayTypography = Typography(
+    headlineLarge = TextStyle(
+        fontSize = 29.sp,
+        lineHeight = 35.sp,
+        fontWeight = FontWeight.ExtraBold,
+        letterSpacing = (-0.6).sp
+    ),
+    titleLarge = TextStyle(
+        fontSize = 21.sp,
+        lineHeight = 27.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.3).sp
+    ),
+    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
+    bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+    labelMedium = TextStyle(fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold)
+)
+
 private val MyDayShapes = Shapes(
     small = RoundedCornerShape(10.dp),
     medium = RoundedCornerShape(16.dp),
@@ -59,7 +83,7 @@ private val MyDayShapes = Shapes(
 fun MyDayTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = MyDayColorScheme,
-        typography = Typography(),
+        typography = MyDayTypography,
         shapes = MyDayShapes,
         content = content
     )
