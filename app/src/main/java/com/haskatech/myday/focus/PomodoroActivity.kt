@@ -103,7 +103,7 @@ private fun PomodoroScreen() {
                 Text(phaseLabel, color = MyDayColors.Navy, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
             }
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(26.dp),
+            Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(26.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(vertical = 22.dp, horizontal = 16.dp),
@@ -130,7 +130,7 @@ private fun PomodoroScreen() {
                     }
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(22.dp),
+            Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(22.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(16.dp),
