@@ -45,6 +45,31 @@ class DatabaseMigrationTest {
         assertEquals(listOf("ALTER TABLE tasks ADD COLUMN urgency TEXT NOT NULL DEFAULT 'Normal'"), statements)
     }
 
+
+    @Test fun migrations1To7PreserveLegacySchemaByApplyingExpectedAdditions() {
+        val cases = listOf(
+            Triple(MyDayDatabase.MIGRATION_1_2, 1 to 2, listOf("ALTER TABLE tasks ADD COLUMN isTopPriority INTEGER NOT NULL DEFAULT 0")),
+            Triple(MyDayDatabase.MIGRATION_2_3, 2 to 3, listOf("ALTER TABLE tasks ADD COLUMN reminderAtMillis INTEGER")),
+            Triple(MyDayDatabase.MIGRATION_3_4, 3 to 4, listOf("ALTER TABLE tasks ADD COLUMN recurrenceRule TEXT NOT NULL DEFAULT 'None'")),
+            Triple(MyDayDatabase.MIGRATION_4_5, 4 to 5, listOf(
+                "ALTER TABLE tasks ADD COLUMN timeSpentMillis INTEGER NOT NULL DEFAULT 0",
+                "CREATE TABLE IF NOT EXISTS time_tracking_session (\n                        id INTEGER NOT NULL,\n                        taskId INTEGER NOT NULL,\n                        startedAtMillis INTEGER,\n                        PRIMARY KEY(id)\n                    )"
+            )),
+            Triple(MyDayDatabase.MIGRATION_5_6, 5 to 6, listOf(
+                "CREATE TABLE IF NOT EXISTS time_tracking_entry (\n                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n                        taskId INTEGER NOT NULL,\n                        startedAtMillis INTEGER NOT NULL,\n                        endedAtMillis INTEGER NOT NULL,\n                        durationMillis INTEGER NOT NULL\n                    )",
+                "CREATE INDEX IF NOT EXISTS index_time_tracking_entry_startedAtMillis ON time_tracking_entry(startedAtMillis)"
+            )),
+            Triple(MyDayDatabase.MIGRATION_6_7, 6 to 7, listOf("ALTER TABLE tasks ADD COLUMN recurrenceSeriesId TEXT"))
+        )
+        cases.forEach { (migration, versions, expectedSql) ->
+            assertEquals(versions.first, migration.startVersion)
+            assertEquals(versions.second, migration.endVersion)
+            val statements = mutableListOf<String>()
+            migration.migrate(recordingDatabase(statements))
+            assertEquals(expectedSql, statements)
+        }
+    }
+
     private fun recordingDatabase(statements: MutableList<String>) =
         Proxy.newProxyInstance(SupportSQLiteDatabase::class.java.classLoader,
             arrayOf(SupportSQLiteDatabase::class.java)) { _, method, args ->
