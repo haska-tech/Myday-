@@ -6,6 +6,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,11 +35,11 @@ class TaskTimeTrackingRepositoryTest {
         assertEquals(3_000L, task.timeSpentMillis)
         assertEquals(1, entries.size)
         assertEquals(3_000L, entries.single().durationMillis)
-        assertEquals(null, database.timeTrackingDao().getSession()!!.startedAtMillis)
+        assertNull(database.timeTrackingDao().getSession()!!.startedAtMillis)
     }
 
     @Test fun refusesMissingTaskAndDoesNotCreateSession() = runBlocking {
         assertFalse(repository.start(999L, 1_000L))
-        assertEquals(null, database.timeTrackingDao().getSession())
+        assertNull(database.timeTrackingDao().getSession())
     }
 }

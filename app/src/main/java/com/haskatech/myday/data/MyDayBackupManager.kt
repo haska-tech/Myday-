@@ -3,6 +3,8 @@ package com.haskatech.myday.data
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.haskatech.myday.reminders.ReminderScheduler
 import com.haskatech.myday.widget.MyDayWidgetProvider
 import org.json.JSONArray
@@ -43,6 +45,11 @@ object MyDayBackupManager {
         return BackupSnapshot(tasks, entries, session)
     }
 
+    suspend fun checkIntegrity(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val cursor = MyDayDatabase.getDatabase(context).openHelper.readableDatabase.query("PRAGMA quick_check")
+        cursor.use { it.moveToFirst() && it.getString(0) == "ok" }
+    }
+
     suspend fun exportTo(context: Context, uri: Uri) {
         val database = MyDayDatabase.getDatabase(context)
         val snapshot = database.withTransaction {
@@ -59,14 +66,15 @@ object MyDayBackupManager {
             ?: throw IllegalStateException("Could not open the selected backup file.")
         val snapshot = input.bufferedReader(Charsets.UTF_8).use { decode(it.readText()) }
         val database = MyDayDatabase.getDatabase(context)
-        val oldTasks = database.taskDao().getAllTasks()
-        database.withTransaction {
+        val oldTasks = database.withTransaction {
+            val existing = database.taskDao().getAllTasks()
             database.timeTrackingDao().clearEntries()
             database.taskDao().clearAllTasks()
-            database.taskDao().insertAll(snapshot.tasks)
+            if (snapshot.tasks.isNotEmpty()) database.taskDao().insertAll(snapshot.tasks)
             if (snapshot.entries.isNotEmpty()) database.timeTrackingDao().insertEntries(snapshot.entries)
             database.timeTrackingDao().clearSession()
             snapshot.session?.let { database.timeTrackingDao().saveSession(it) }
+            existing
         }
         oldTasks.forEach { ReminderScheduler.cancel(context, it.id) }
         val now = System.currentTimeMillis()

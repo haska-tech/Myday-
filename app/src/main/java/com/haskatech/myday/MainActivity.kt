@@ -13,7 +13,6 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import java.text.DateFormat
 import java.util.Calendar
@@ -1070,6 +1069,21 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         SettingsGroup("BACKUP & RESTORE") {
             Text("Export a portable copy of tasks and tracked time, or restore a previous MyDay backup. Files stay under your control; no cloud account is required.",
                 color = Muted, fontSize = 11.sp, modifier = Modifier.padding(vertical = 8.dp))
+            TextButton(onClick = {
+                scope.launch {
+                    runCatching { MyDayBackupManager.checkIntegrity(context) }
+                        .onSuccess { ok ->
+                            val message = if (ok) "Local database integrity check passed."
+                                else "Database integrity check reported a problem. Export a backup if possible."
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        }
+                        .onFailure { Toast.makeText(context, "Database check failed: ${it.localizedMessage ?: "storage error"}", Toast.LENGTH_LONG).show() }
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.VerifiedUser, contentDescription = null)
+                Spacer(Modifier.width(5.dp))
+                Text("Check local data integrity")
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { exportLauncher.launch("MyDay-backup.json") }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.FileUpload, contentDescription = null)
