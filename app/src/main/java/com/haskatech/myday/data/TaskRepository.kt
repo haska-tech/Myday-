@@ -172,7 +172,7 @@ class TaskRepository(private val taskDao: TaskDao) {
                 else -> target.scheduledAtMillis
             }
             val targetReminder = targetStart?.let { start -> reminderOffset?.let { start + it } }
-            val targetDeadline = targetStart?.let { start -> if (target.id == task.id || reanchorSeries) deadlineOffset?.let { start + it } else target.deadlineAtMillis }
+            val targetDeadline = if (target.id == task.id) deadlineAtMillis else targetStart?.let { start -> if (reanchorSeries) deadlineOffset?.let { start + it } else target.deadlineAtMillis }
             val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes, targetDeadline)
             if (changed > 0) updated += target.copy(
                 title = cleanTitle,

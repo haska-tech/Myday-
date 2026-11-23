@@ -74,7 +74,7 @@ interface TaskDao {
     @Transaction
     suspend fun applyApprovedSchedule(taskId: Long, startMillis: Long, durationMinutes: Int): TaskEntity? {
         val current = getTaskById(taskId) ?: return null
-        if (current.isCompleted || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks(), taskId).isNotEmpty()) return null
+        if (current.isCompleted || (current.deadlineAtMillis != null && startMillis > current.deadlineAtMillis) || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks().map { it.copy(plannedDurationMinutes = it.plannedDurationMinutes ?: 60) }, taskId).isNotEmpty()) return null
         val reminderOffset = current.scheduledAtMillis?.let { old -> current.reminderAtMillis?.minus(old) }
         val reminder = reminderOffset?.let { startMillis + it }
         val changed = updateDetails(taskId, current.title, current.priority, startMillis, reminder, durationMinutes, current.deadlineAtMillis)

@@ -8,7 +8,9 @@ object TaskEditRules {
         reminderAtMillis: Long?,
         nowMillis: Long,
         originalScheduledAtMillis: Long?,
-        originalReminderAtMillis: Long?
+        originalReminderAtMillis: Long?,
+        deadlineAtMillis: Long? = null,
+        originalDeadlineAtMillis: Long? = null
     ): Boolean {
         if (title.isBlank()) return false
         if (scheduledAtMillis != null &&
@@ -20,6 +22,10 @@ object TaskEditRules {
             if (reminderAtMillis <= nowMillis &&
                 reminderAtMillis != originalReminderAtMillis
             ) return false
+        }
+        if (deadlineAtMillis != null) {
+            if (deadlineAtMillis < (scheduledAtMillis ?: nowMillis)) return false
+            if (deadlineAtMillis <= nowMillis && deadlineAtMillis != originalDeadlineAtMillis) return false
         }
         return true
     }

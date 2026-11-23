@@ -50,6 +50,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return@launch
             if (scheduledAtMillis != null && scheduledAtMillis <= now) return@launch
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
+            if (deadlineAtMillis != null && (deadlineAtMillis <= now || (scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis))) return@launch
 
             val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes, deadlineAtMillis)
             createdTasks.orEmpty().forEach { task ->
@@ -67,8 +68,8 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             val now = System.currentTimeMillis()
             if (!com.haskatech.myday.data.TaskEditRules.isValid(
                     title, scheduledAtMillis, reminderAtMillis, now,
-                    task.scheduledAtMillis, task.reminderAtMillis
-                )) return@launch
+                    task.scheduledAtMillis, task.reminderAtMillis, deadlineAtMillis, task.deadlineAtMillis
+                ) || (deadlineAtMillis != null && scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis)) return@launch
             val updatedTasks = repository.updateTask(task, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes, deadlineAtMillis, applyToSeries)
             updatedTasks.forEach { updated ->
                 ReminderScheduler.cancel(getApplication(), updated.id)
