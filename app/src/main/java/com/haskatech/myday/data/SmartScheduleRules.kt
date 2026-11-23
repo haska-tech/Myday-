@@ -45,13 +45,46 @@ object SmartScheduleRules {
    val duration=task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES;val existing=task.scheduledAtMillis
    val hasIssue=warnings.any{it.taskId==task.id&&(it.type==SmartWarningType.OVERLAP||it.type==SmartWarningType.OUTSIDE_WORK_HOURS||it.type==SmartWarningType.DEADLINE_INSUFFICIENT)}
    val proposed=if(existing!=null&&!hasIssue)existing else findSlot(task,planningTasks,nowMillis,zone,workdayStartHour,workdayEndHour,horizonDays)
-   val reasons=mutableListOf<String>()
-   reasons+=when(task.priority){"High"->"High importance";"Low"->"Lower importance";else->"Normal importance"}
-   if(task.isTopPriority)reasons+="already marked Top 3"
-   reasons+=when(task.urgency){"Critical"->"critical urgency";"High"->"high urgency";"Normal"->"normal urgency";else->"low urgency"}
-   task.deadlineAtMillis?.let{val delta=it-nowMillis;reasons+=when{delta<0->"deadline overdue";delta<=86400000L->"due within 24 hours";delta<=259200000L->"due within 3 days";else->"deadline scheduled"}}?:run{reasons+="no deadline set"}
-   reasons+=if(task.plannedDurationMinutes==null)"estimated at $duration minutes" else "$duration-minute task"
-   if(warnings.any{it.taskId==task.id&&it.type==SmartWarningType.DEADLINE_INSUFFICIENT})reasons+="deadline may be difficult to meet"
+   val reasons = mutableListOf<String>()
+   val importanceReason = when (task.priority) {
+    "High" -> "High importance"
+    "Low" -> "Lower importance"
+    else -> "Normal importance"
+   }
+   reasons.add(importanceReason)
+   if (task.isTopPriority) reasons.add("already marked Top 3")
+   val urgencyReason = when (task.urgency) {
+    "Critical" -> "critical urgency"
+    "High" -> "high urgency"
+    "Normal" -> "normal urgency"
+    else -> "low urgency"
+   }
+   reasons.add(urgencyReason)
+   val deadline = task.deadlineAtMillis
+   if (deadline == null) {
+    reasons.add("no deadline set")
+   } else {
+    val remaining = deadline - nowMillis
+    val deadlineReason = when {
+     remaining < 0 -> "deadline overdue"
+     remaining <= 86400000L -> "due within 24 hours"
+     remaining <= 259200000L -> "due within 3 days"
+     else -> "deadline scheduled"
+    }
+    reasons.add(deadlineReason)
+   }
+   val durationReason = if (task.plannedDurationMinutes == null) {
+    "estimated at $duration minutes"
+   } else {
+    "$duration-minute task"
+   }
+   reasons.add(durationReason)
+   val deadlineRisk = warnings.any { warning ->
+    warning.taskId == task.id && warning.type == SmartWarningType.DEADLINE_INSUFFICIENT
+   }
+   if (deadlineRisk) {
+    reasons.add("deadline may be difficult to meet")
+   }
    if((existing==null||hasIssue)&&proposed!=null){
     val index=planningTasks.indexOfFirst{it.id==task.id}
     if(index>=0)planningTasks[index]=task.copy(scheduledAtMillis=proposed,plannedDurationMinutes=duration)

@@ -198,10 +198,17 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
-            3 -> SmartPlanScreen(tasks, nowMillis,
-                { taskId, start, duration -> tasksViewModel.approveSuggestedTime(taskId, start, duration) },
-                { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) },
-                { taskId -> tasks.firstOrNull { it.id == taskId }?.let { taskBeingEdited = it } }, Modifier.padding(padding))
+            3 -> SmartPlanScreen(
+                tasks = tasks,
+                nowMillis = nowMillis,
+                onApprove = { taskId, start, duration -> tasksViewModel.approveSuggestedTime(taskId, start, duration) },
+                onDurationCorrection = { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) },
+                onEditTask = { taskId ->
+                    val selectedTask = tasks.firstOrNull { it.id == taskId }
+                    if (selectedTask != null) taskBeingEdited = selectedTask
+                },
+                modifier = Modifier.padding(padding)
+            )
             4 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
             else -> SettingsScreen(Modifier.padding(padding))
         }
