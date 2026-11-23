@@ -159,13 +159,13 @@ class MyDayWidgetProvider : AppWidgetProvider() {
                     R.id.widget_priorities,
                     if (snapshot.topPriorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES"
                 )
-                views.setTextViewText(R.id.widget_progress_label, "TODAY'S PROGRESS · ${snapshot.progressLabel}")
-                views.setProgressBar(R.id.widget_progress, 100, snapshot.progressPercent, false)
-                views.setViewVisibility(R.id.widget_progress, if (snapshot.totalTodayCount == 0) View.GONE else View.VISIBLE)
+                views.setTextViewText(R.id.widget_progress_label, snapshot.progressLabel)
+                views.setProgressBar(R.id.widget_progress_bar, 100, snapshot.progressPercent, false)
+                views.setViewVisibility(R.id.widget_progress_bar, if (snapshot.totalTodayCount == 0) View.GONE else View.VISIBLE)
                 views.setOnClickPendingIntent(R.id.widget_title, open)
                 views.setOnClickPendingIntent(R.id.widget_footer, open)
                 views.setOnClickPendingIntent(R.id.widget_refresh, refresh)
-                views.setOnClickPendingIntent(R.id.widget_quick_add, quickAdd)
+                views.setOnClickPendingIntent(R.id.widget_add, quickAdd)
                 views.removeAllViews(R.id.widget_task_list)
                 val rows = visibleTasks.take(limit)
                 views.setTextViewText(R.id.widget_tasks, empty)
