@@ -28,7 +28,7 @@ class ProductivityAnalyticsRulesTest {
         val active=today.atTime(11,0).atZone(zone).toInstant().toEpochMilli()
         val r=ProductivityAnalyticsRules.calculate(emptyList(), listOf(entry), active, now, zone, AnalyticsRange.WEEK)
         assertEquals(30*60_000L, r.daily.first { it.date==today.minusDays(1) }.trackedMillis)
-        assertEquals(2*60*60_000L, r.daily.last().trackedMillis); assertEquals(2*60*60_000L, r.trackedMillis)
+        assertEquals(2*60*60_000L, r.daily.last().trackedMillis); assertEquals(150*60_000L, r.trackedMillis)
     }
 
     @Test fun overdueExcludesCompletedAndFutureDeadlineTasks() {
