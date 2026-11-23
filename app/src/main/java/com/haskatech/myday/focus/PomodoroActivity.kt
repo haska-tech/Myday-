@@ -97,7 +97,7 @@ private fun PomodoroScreen() {
                 Text("POMODORO", color = MyDayColors.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
-            Text("Stay focused.", color = MyDayColors.Navy, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
+            Text("Stay focused.", color = MyDayColors.Navy, style = MaterialTheme.typography.headlineLarge)
             Text("One thing at a time. Give it your best.", color = MyDayColors.Muted, fontSize = 13.sp)
             Surface(color = MyDayColors.Lime.copy(alpha = 0.24f), shape = RoundedCornerShape(50)) {
                 Text(phaseLabel, color = MyDayColors.Navy, fontSize = 11.sp, fontWeight = FontWeight.Bold,
