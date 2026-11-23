@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
 import com.haskatech.myday.data.MyDayBackupManager
 import com.haskatech.myday.data.TaskConflictRules
+import com.haskatech.myday.data.SmartScheduleRules
 import com.haskatech.myday.data.PlannerTime
 import com.haskatech.myday.data.TimeTrackingSessionEntity
 import com.haskatech.myday.data.TimeTrackingEntryEntity
@@ -127,8 +128,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             while (true) { nowMillis = System.currentTimeMillis(); delay(1_000) }
         }
     }
-    val labels = listOf("My Day", "Tasks", "Calendar", "Insights", "Settings")
-    val icons = listOf(Icons.Default.Today, Icons.Default.CheckCircle, Icons.Default.CalendarMonth, Icons.Default.Insights, Icons.Default.Settings)
+    val labels = listOf("My Day", "Tasks", "Calendar", "Plan", "Insights", "Settings")
+    val icons = listOf(Icons.Default.Today, Icons.Default.CheckCircle, Icons.Default.CalendarMonth, Icons.Default.AutoAwesome, Icons.Default.Insights, Icons.Default.Settings)
     val toggleTop: (TaskEntity, Boolean) -> Unit = { task, selected ->
         tasksViewModel.setTopPriority(task, selected) { showTopThreeLimit = true }
     }
@@ -197,7 +198,10 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
-            3 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
+            3 -> SmartPlanScreen(tasks, nowMillis,
+                { taskId, start, duration -> tasksViewModel.approveSuggestedTime(taskId, start, duration) },
+                { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) }, Modifier.padding(padding))
+            4 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
             else -> SettingsScreen(Modifier.padding(padding))
         }
     }
@@ -207,8 +211,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             initialTask = taskBeingEdited,
             onDismiss = { taskBeingEdited = null },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, _, durationMinutes, applyToSeries ->
-                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, applyToSeries) }
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries) }
                 taskBeingEdited = null
             }
         )
@@ -217,8 +221,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, _ ->
-                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes)
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _ ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt)
                 showAddDialog = false
             }
         )
@@ -499,7 +503,7 @@ private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
     allTasks: List<TaskEntity>,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Long?, Long?, String, Int?, Boolean) -> Unit
+    onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean) -> Unit
 ) {
     var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
     var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
@@ -507,6 +511,7 @@ private fun AddTaskDialog(
     var applyToSeries by remember(initialTask?.id) { mutableStateOf(false) }
     var scheduledAt by remember(initialTask?.id) { mutableStateOf(initialTask?.scheduledAtMillis) }
     var plannedDurationMinutes by remember(initialTask?.id) { mutableStateOf(initialTask?.plannedDurationMinutes) }
+    var deadlineAt by remember(initialTask?.id) { mutableStateOf(initialTask?.deadlineAtMillis) }
     val conflicts = remember(scheduledAt, plannedDurationMinutes, allTasks, initialTask?.id) {
         TaskConflictRules.findConflicts(scheduledAt, plannedDurationMinutes, allTasks, initialTask?.id)
     }
@@ -522,7 +527,8 @@ private fun AddTaskDialog(
     val reminderInFuture = !reminderEnabled || scheduledAt == null ||
         scheduledAt!! - reminderOffsetMinutes * 60_000L > nowMillis ||
         (scheduledAt == initialTask?.scheduledAtMillis && reminderOffsetMinutes == initialReminderOffset)
-    val canSave = title.isNotBlank() && scheduledInFuture && reminderInFuture
+    val deadlineValid = deadlineAt == null || (deadlineAt!! > nowMillis && (scheduledAt == null || deadlineAt!! >= scheduledAt!!)) || deadlineAt == initialTask?.deadlineAtMillis
+    val canSave = title.isNotBlank() && scheduledInFuture && reminderInFuture && deadlineValid
     val dateLabel = scheduledAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) }
         ?: "Not scheduled"
 
@@ -588,6 +594,30 @@ private fun AddTaskDialog(
                     listOf("High", "Normal", "Low").forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option }, label = { Text(option) })
                     }
+                }
+                OutlinedButton(onClick = {
+                    val now = Calendar.getInstance()
+                    DatePickerDialog(context, { _, year, month, day ->
+                        val chosen = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, year); set(Calendar.MONTH, month); set(Calendar.DAY_OF_MONTH, day)
+                        }
+                        TimePickerDialog(context, { _, hour, minute ->
+                            chosen.set(Calendar.HOUR_OF_DAY, hour)
+                            chosen.set(Calendar.MINUTE, minute)
+                            chosen.set(Calendar.SECOND, 0)
+                            chosen.set(Calendar.MILLISECOND, 0)
+                            deadlineAt = chosen.timeInMillis
+                        }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false).show()
+                    }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).apply {
+                        datePicker.minDate = System.currentTimeMillis()
+                    }.show()
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Flag, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Deadline: ${deadlineAt?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)) } ?: "Not set"}")
+                }
+                if (!deadlineValid) {
+                    Text("Deadline must be in the future and cannot be earlier than the scheduled start.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
                 OutlinedButton(onClick = {
                     val now = Calendar.getInstance()
@@ -685,7 +715,7 @@ private fun AddTaskDialog(
         confirmButton = {
             Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
-                onAdd(title, priority, scheduledAt, reminder, recurrenceRule, plannedDurationMinutes, applyToSeries)
+                onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
