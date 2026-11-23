@@ -14,7 +14,7 @@ class SmartPlanApprovalTest {
  private lateinit var db:MyDayDatabase
  @Before fun setUp(){db=Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(),MyDayDatabase::class.java).allowMainThreadQueries().build()}
  @After fun tearDown(){db.close()}
- @Test fun scheduleChangesOnlyAfterExplicitApproval()=runBlocking{val id=db.taskDao().insert(TaskEntity(title="Unscheduled"));assertNull(db.taskDao().getTaskById(id)!!.scheduledAtMillis);val start=java.time.LocalDate.of(2026,11,24).atTime(9,0).atZone(java.time.ZoneId.of("Africa/Kampala")).toInstant().toEpochMilli();val result=db.taskDao().applyApprovedSchedule(id,start,45);assertEquals(start,result!!.scheduledAtMillis);assertEquals(45,result.plannedDurationMinutes)}
+ @Test fun scheduleChangesOnlyAfterExplicitApproval()=runBlocking{val id=db.taskDao().insert(TaskEntity(title="Unscheduled"));assertNull(db.taskDao().getTaskById(id)!!.scheduledAtMillis);val start=java.time.LocalDate.of(2026,11,24).atTime(9,0).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();val result=db.taskDao().applyApprovedSchedule(id,start,45);assertEquals(start,result!!.scheduledAtMillis);assertEquals(45,result.plannedDurationMinutes)}
  @Test fun rejectsSlotsOutsideWorkHoursAndBeyondDeadline(){
   val date=java.time.LocalDate.of(2026,11,24);val zone=java.time.ZoneId.of("Africa/Kampala")
   val morning=date.atTime(9,0).atZone(zone).toInstant().toEpochMilli()
