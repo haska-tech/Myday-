@@ -1,6 +1,7 @@
 package com.haskatech.myday.data
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 enum class SmartWarningType { OVERLAP, OUTSIDE_WORK_HOURS, DEADLINE_INSUFFICIENT, DAILY_OVERLOAD, NO_AVAILABLE_SLOT }
 data class SmartPlanWarning(val type:SmartWarningType,val taskId:Long?,val taskTitle:String,val message:String)
@@ -20,7 +21,7 @@ object SmartScheduleRules {
   scheduled.forEach{task->
    val start=task.scheduledAtMillis!!;val end=safeEnd(start,task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES)?:return@forEach
    val localStart=Instant.ofEpochMilli(start).atZone(zone);val localEnd=Instant.ofEpochMilli(end).atZone(zone)
-   if(localStart.hour<workdayStartHour||localStart.hour>=workdayEndHour||localEnd.toLocalDate()!=localStart.toLocalDate()||localEnd.hour>workdayEndHour||(localEnd.hour==workdayEndHour&&localEnd.minute>0))
+   if(localStart.hour<workdayStartHour||localStart.hour>=workdayEndHour||localEnd.toLocalDate()!=localStart.toLocalDate()||localEnd.toLocalTime().isAfter(LocalTime.of(workdayEndHour,0)))
     warnings+=SmartPlanWarning(SmartWarningType.OUTSIDE_WORK_HOURS,task.id,task.title,"Scheduled outside the default ${workdayStartHour}:00–${workdayEndHour}:00 planning window.")
   }
   scheduled.forEach{task->
@@ -100,7 +101,7 @@ object SmartScheduleRules {
  fun isWithinDefaultWorkHours(startMillis:Long,durationMinutes:Int,zone:ZoneId=ZoneId.systemDefault()):Boolean {
   val end=safeEnd(startMillis,durationMinutes)?:return false
   val start=Instant.ofEpochMilli(startMillis).atZone(zone);val finish=Instant.ofEpochMilli(end).atZone(zone)
-  return start.hour in DEFAULT_WORKDAY_START_HOUR until DEFAULT_WORKDAY_END_HOUR && finish.toLocalDate()==start.toLocalDate() && finish.hour<=DEFAULT_WORKDAY_END_HOUR && (finish.hour<DEFAULT_WORKDAY_END_HOUR||finish.minute==0)
+  return start.hour in DEFAULT_WORKDAY_START_HOUR until DEFAULT_WORKDAY_END_HOUR && finish.toLocalDate()==start.toLocalDate() && finish.hour<=DEFAULT_WORKDAY_END_HOUR && !finish.toLocalTime().isAfter(LocalTime.of(DEFAULT_WORKDAY_END_HOUR,0))
  }
  private fun safeEnd(start:Long,minutes:Int):Long?{if(minutes<=0)return null;val duration=minutes.toLong()*60000L;return if(start>Long.MAX_VALUE-duration)null else start+duration}
 }
