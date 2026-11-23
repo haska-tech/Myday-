@@ -54,6 +54,11 @@ import com.haskatech.myday.focus.VoiceCaptureRules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private val Navy = MyDayColors.Navy
+private val Lime = MyDayColors.Lime
+private val Paper = MyDayColors.Paper
+private val Muted = MyDayColors.Muted
+
 class MainActivity : ComponentActivity() {
     private val quickAddRequest = mutableIntStateOf(0)
 
