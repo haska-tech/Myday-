@@ -19,5 +19,6 @@ data class TaskEntity(
     @ColumnInfo(defaultValue = "0") val timeSpentMillis: Long = 0L,
     val recurrenceSeriesId: String? = null,
     /** Optional planned block length; null preserves the legacy point-in-time task model. */
-    val plannedDurationMinutes: Int? = null
+    val plannedDurationMinutes: Int? = null,
+    val deadlineAtMillis: Long? = null
 )

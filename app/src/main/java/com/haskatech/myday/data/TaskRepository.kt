@@ -13,11 +13,13 @@ class TaskRepository(private val taskDao: TaskDao) {
         scheduledAtMillis: Long? = null,
         reminderAtMillis: Long? = null,
         recurrenceRule: String = "None",
-        plannedDurationMinutes: Int? = null
+        plannedDurationMinutes: Int? = null,
+        deadlineAtMillis: Long? = null
     ): List<TaskEntity>? {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return null
         if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return null
+        if (deadlineAtMillis != null && scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis) return null
 
         val seriesId = if (recurrenceRule != "None" && scheduledAtMillis != null) UUID.randomUUID().toString() else null
         val first = TaskEntity(
@@ -27,8 +29,10 @@ class TaskRepository(private val taskDao: TaskDao) {
             reminderAtMillis = reminderAtMillis,
             recurrenceRule = recurrenceRule,
             recurrenceSeriesId = seriesId,
-            plannedDurationMinutes = plannedDurationMinutes
+            plannedDurationMinutes = plannedDurationMinutes,
+            deadlineAtMillis = deadlineAtMillis
         )
+        val deadlineOffset = if (scheduledAtMillis != null && deadlineAtMillis != null) deadlineAtMillis - scheduledAtMillis else null
         val occurrences = if (seriesId != null && scheduledAtMillis != null) {
             val horizon = System.currentTimeMillis() + ROLLING_WINDOW_MILLIS
             RecurrenceSchedule.datesThrough(scheduledAtMillis, recurrenceRule, horizon).map { date ->
@@ -36,6 +40,7 @@ class TaskRepository(private val taskDao: TaskDao) {
                     id = 0,
                     scheduledAtMillis = date,
                     reminderAtMillis = reminderAtMillis?.let { date + (it - scheduledAtMillis) },
+                    deadlineAtMillis = deadlineOffset?.let { date + it },
                     createdAtMillis = System.currentTimeMillis()
                 )
             }
@@ -71,9 +76,11 @@ class TaskRepository(private val taskDao: TaskDao) {
             .filter { it > latestScheduled && it !in existingDates }
         if (newDates.isEmpty()) return emptyList()
         val reminderOffset = task.reminderAtMillis?.minus(task.scheduledAtMillis)
+        val deadlineOffset = task.deadlineAtMillis?.minus(task.scheduledAtMillis)
         val templates = newDates.map { date ->
             task.copy(id = 0, scheduledAtMillis = date,
                 reminderAtMillis = reminderOffset?.let { date + it },
+                deadlineAtMillis = deadlineOffset?.let { date + it },
                 recurrenceSeriesId = seriesId, isCompleted = false, isTopPriority = false,
                 timeSpentMillis = 0L, createdAtMillis = System.currentTimeMillis())
         }
@@ -108,11 +115,13 @@ class TaskRepository(private val taskDao: TaskDao) {
         if (dates.isEmpty()) return emptyList()
         val template = series.firstOrNull() ?: task
         val reminderOffset = template.scheduledAtMillis?.let { start -> template.reminderAtMillis?.minus(start) }
+        val deadlineOffset = template.scheduledAtMillis?.let { start -> template.deadlineAtMillis?.minus(start) }
         val rows = dates.map { date ->
             template.copy(
                 id = 0,
                 scheduledAtMillis = date,
                 reminderAtMillis = reminderOffset?.let { date + it },
+                deadlineAtMillis = deadlineOffset?.let { date + it },
                 recurrenceSeriesId = seriesId,
                 isCompleted = false,
                 isTopPriority = false,
@@ -133,10 +142,12 @@ class TaskRepository(private val taskDao: TaskDao) {
         scheduledAtMillis: Long?,
         reminderAtMillis: Long?,
         plannedDurationMinutes: Int?,
+        deadlineAtMillis: Long?,
         applyToSeries: Boolean = false
     ): List<TaskEntity> {
         val cleanTitle = title.trim()
-        if (cleanTitle.isEmpty() || (plannedDurationMinutes != null && plannedDurationMinutes <= 0)) return emptyList()
+        if (cleanTitle.isEmpty() || (plannedDurationMinutes != null && plannedDurationMinutes <= 0) ||
+            (deadlineAtMillis != null && scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis)) return emptyList()
 
         val oldStart = task.scheduledAtMillis
         val newStart = scheduledAtMillis
@@ -146,6 +157,7 @@ class TaskRepository(private val taskDao: TaskDao) {
                 .filter { (it.scheduledAtMillis ?: Long.MIN_VALUE) >= (oldStart ?: Long.MIN_VALUE) && (!it.isCompleted || it.id == task.id) }
         } else listOf(task)
         val reminderOffset = if (newStart != null && reminderAtMillis != null) reminderAtMillis - newStart else null
+        val deadlineOffset = if (newStart != null && deadlineAtMillis != null) deadlineAtMillis - newStart else null
         val updated = mutableListOf<TaskEntity>()
 
         for (target in targets) {
@@ -160,17 +172,25 @@ class TaskRepository(private val taskDao: TaskDao) {
                 else -> target.scheduledAtMillis
             }
             val targetReminder = targetStart?.let { start -> reminderOffset?.let { start + it } }
-            val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes)
+            val targetDeadline = targetStart?.let { start -> if (target.id == task.id || reanchorSeries) deadlineOffset?.let { start + it } else target.deadlineAtMillis }
+            val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes, targetDeadline)
             if (changed > 0) updated += target.copy(
                 title = cleanTitle,
                 priority = priority,
                 scheduledAtMillis = targetStart,
                 reminderAtMillis = targetReminder,
-                plannedDurationMinutes = plannedDurationMinutes
+                plannedDurationMinutes = plannedDurationMinutes,
+                deadlineAtMillis = targetDeadline
             )
         }
         return updated
     }
+    suspend fun approveSuggestedTime(taskId: Long, startMillis: Long, durationMinutes: Int): TaskEntity? =
+        taskDao.applyApprovedSchedule(taskId, startMillis, durationMinutes)
+
+    suspend fun updatePlannedDuration(taskId: Long, minutes: Int): Boolean =
+        minutes in 5..1440 && taskDao.updatePlannedDuration(taskId, minutes) == 1
+
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
 
     companion object {

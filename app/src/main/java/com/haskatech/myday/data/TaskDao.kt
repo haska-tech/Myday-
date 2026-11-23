@@ -63,10 +63,23 @@ interface TaskDao {
 
     @Query("""
         UPDATE tasks SET title = :title, priority = :priority, scheduledAtMillis = :scheduledAtMillis,
-        reminderAtMillis = :reminderAtMillis, plannedDurationMinutes = :plannedDurationMinutes
+        reminderAtMillis = :reminderAtMillis, plannedDurationMinutes = :plannedDurationMinutes, deadlineAtMillis = :deadlineAtMillis
         WHERE id = :taskId
     """)
-    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?): Int
+    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?): Int
+
+    @Query("UPDATE tasks SET plannedDurationMinutes = :minutes WHERE id = :taskId AND isCompleted = 0")
+    suspend fun updatePlannedDuration(taskId: Long, minutes: Int): Int
+
+    @Transaction
+    suspend fun applyApprovedSchedule(taskId: Long, startMillis: Long, durationMinutes: Int): TaskEntity? {
+        val current = getTaskById(taskId) ?: return null
+        if (current.isCompleted || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks(), taskId).isNotEmpty()) return null
+        val reminderOffset = current.scheduledAtMillis?.let { old -> current.reminderAtMillis?.minus(old) }
+        val reminder = reminderOffset?.let { startMillis + it }
+        val changed = updateDetails(taskId, current.title, current.priority, startMillis, reminder, durationMinutes, current.deadlineAtMillis)
+        return if (changed == 1) current.copy(scheduledAtMillis = startMillis, reminderAtMillis = reminder, plannedDurationMinutes = durationMinutes) else null
+    }
 
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)

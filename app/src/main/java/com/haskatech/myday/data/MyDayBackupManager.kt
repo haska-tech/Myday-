@@ -92,6 +92,7 @@ object MyDayBackupManager {
         .put("isCompleted", isCompleted).put("createdAtMillis", createdAtMillis).put("timeSpentMillis", timeSpentMillis)
         .put("recurrenceSeriesId", recurrenceSeriesId ?: JSONObject.NULL)
         .put("plannedDurationMinutes", plannedDurationMinutes ?: JSONObject.NULL)
+        .putNullableLong("deadlineAtMillis", deadlineAtMillis)
 
     private fun TimeTrackingEntryEntity.toJson() = JSONObject().put("id", id).put("taskId", taskId)
         .put("startedAtMillis", startedAtMillis).put("endedAtMillis", endedAtMillis).put("durationMillis", durationMillis)
@@ -110,7 +111,8 @@ object MyDayBackupManager {
         isTopPriority = optBoolean("isTopPriority", false), isCompleted = optBoolean("isCompleted", false),
         createdAtMillis = getLong("createdAtMillis"), timeSpentMillis = getLong("timeSpentMillis"),
         recurrenceSeriesId = optNullableString("recurrenceSeriesId"),
-        plannedDurationMinutes = if (isNull("plannedDurationMinutes")) null else getInt("plannedDurationMinutes")
+        plannedDurationMinutes = if (isNull("plannedDurationMinutes")) null else getInt("plannedDurationMinutes"),
+        deadlineAtMillis = optNullableLong("deadlineAtMillis")
     )
     private fun JSONObject.toEntry() = TimeTrackingEntryEntity(
         id = getLong("id"), taskId = getLong("taskId"), startedAtMillis = getLong("startedAtMillis"),
