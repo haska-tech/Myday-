@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (com.haskatech.myday.widget.WidgetQuickAddRules.shouldOpenAddDialog(intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false))) quickAddRequest.intValue++
+        if (intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false)) quickAddRequest.intValue++
         setContent {
             MaterialTheme(
                 colorScheme = lightColorScheme(
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_OPEN_QUICK_ADD = com.haskatech.myday.widget.WidgetQuickAddRules.EXTRA_OPEN_QUICK_ADD
+        const val EXTRA_OPEN_QUICK_ADD = "com.haskatech.myday.widget.EXTRA_OPEN_QUICK_ADD"
     }
 }
 
