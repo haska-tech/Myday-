@@ -28,7 +28,7 @@ object MyDayBackupManager {
         val entries = root.getJSONArray("timeEntries").toObjects { it.toEntry() }
         val session = root.optJSONObject("activeSession")?.toSession()
         require(tasks.map { it.id }.toSet().size == tasks.size) { "Backup contains duplicate task IDs." }
-        require(tasks.all { it.id > 0 && it.title.isNotBlank() && it.timeSpentMillis >= 0L &&
+        require(tasks.all { it.id > 0 && it.title.isNotBlank() && it.timeSpentMillis >= 0L && it.urgency in setOf("Low", "Normal", "High", "Critical") &&
             (it.plannedDurationMinutes == null || it.plannedDurationMinutes > 0) &&
             (it.deadlineAtMillis == null || it.scheduledAtMillis == null || it.deadlineAtMillis >= it.scheduledAtMillis) }) {
             "Backup contains invalid task data."
@@ -93,7 +93,7 @@ object MyDayBackupManager {
         .put("isCompleted", isCompleted).put("createdAtMillis", createdAtMillis).put("timeSpentMillis", timeSpentMillis)
         .put("recurrenceSeriesId", recurrenceSeriesId ?: JSONObject.NULL)
         .put("plannedDurationMinutes", plannedDurationMinutes ?: JSONObject.NULL)
-        .putNullableLong("deadlineAtMillis", deadlineAtMillis)
+        .putNullableLong("deadlineAtMillis", deadlineAtMillis).put("urgency", urgency)
 
     private fun TimeTrackingEntryEntity.toJson() = JSONObject().put("id", id).put("taskId", taskId)
         .put("startedAtMillis", startedAtMillis).put("endedAtMillis", endedAtMillis).put("durationMillis", durationMillis)
@@ -113,7 +113,7 @@ object MyDayBackupManager {
         createdAtMillis = getLong("createdAtMillis"), timeSpentMillis = getLong("timeSpentMillis"),
         recurrenceSeriesId = optNullableString("recurrenceSeriesId"),
         plannedDurationMinutes = if (isNull("plannedDurationMinutes")) null else getInt("plannedDurationMinutes"),
-        deadlineAtMillis = optNullableLong("deadlineAtMillis")
+        deadlineAtMillis = optNullableLong("deadlineAtMillis"), urgency = optString("urgency", "Normal")
     )
     private fun JSONObject.toEntry() = TimeTrackingEntryEntity(
         id = getLong("id"), taskId = getLong("taskId"), startedAtMillis = getLong("startedAtMillis"),

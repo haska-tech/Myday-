@@ -20,5 +20,6 @@ data class TaskEntity(
     val recurrenceSeriesId: String? = null,
     /** Optional planned block length; null preserves the legacy point-in-time task model. */
     val plannedDurationMinutes: Int? = null,
-    val deadlineAtMillis: Long? = null
+    val deadlineAtMillis: Long? = null,
+    val urgency: String = "Normal"
 )

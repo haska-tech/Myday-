@@ -14,7 +14,8 @@ class TaskRepository(private val taskDao: TaskDao) {
         reminderAtMillis: Long? = null,
         recurrenceRule: String = "None",
         plannedDurationMinutes: Int? = null,
-        deadlineAtMillis: Long? = null
+        deadlineAtMillis: Long? = null,
+        urgency: String = "Normal"
     ): List<TaskEntity>? {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return null
@@ -30,7 +31,8 @@ class TaskRepository(private val taskDao: TaskDao) {
             recurrenceRule = recurrenceRule,
             recurrenceSeriesId = seriesId,
             plannedDurationMinutes = plannedDurationMinutes,
-            deadlineAtMillis = deadlineAtMillis
+            deadlineAtMillis = deadlineAtMillis,
+            urgency = urgency
         )
         val deadlineOffset = if (scheduledAtMillis != null && deadlineAtMillis != null) deadlineAtMillis - scheduledAtMillis else null
         val occurrences = if (seriesId != null && scheduledAtMillis != null) {
@@ -143,7 +145,8 @@ class TaskRepository(private val taskDao: TaskDao) {
         reminderAtMillis: Long?,
         plannedDurationMinutes: Int?,
         deadlineAtMillis: Long?,
-        applyToSeries: Boolean = false
+        applyToSeries: Boolean = false,
+        urgency: String = task.urgency
     ): List<TaskEntity> {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty() || (plannedDurationMinutes != null && plannedDurationMinutes <= 0) ||
@@ -173,14 +176,15 @@ class TaskRepository(private val taskDao: TaskDao) {
             }
             val targetReminder = targetStart?.let { start -> reminderOffset?.let { start + it } }
             val targetDeadline = if (target.id == task.id) deadlineAtMillis else targetStart?.let { start -> if (reanchorSeries) deadlineOffset?.let { start + it } else target.deadlineAtMillis }
-            val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes, targetDeadline)
+            val changed = taskDao.updateDetails(target.id, cleanTitle, priority, targetStart, targetReminder, plannedDurationMinutes, targetDeadline, urgency)
             if (changed > 0) updated += target.copy(
                 title = cleanTitle,
                 priority = priority,
                 scheduledAtMillis = targetStart,
                 reminderAtMillis = targetReminder,
                 plannedDurationMinutes = plannedDurationMinutes,
-                deadlineAtMillis = targetDeadline
+                deadlineAtMillis = targetDeadline,
+                urgency = urgency
             )
         }
         return updated

@@ -200,7 +200,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             2 -> CalendarScreen(tasks, Modifier.padding(padding))
             3 -> SmartPlanScreen(tasks, nowMillis,
                 { taskId, start, duration -> tasksViewModel.approveSuggestedTime(taskId, start, duration) },
-                { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) }, Modifier.padding(padding))
+                { taskId, minutes -> tasksViewModel.correctPlannedDuration(taskId, minutes) },
+                { taskId -> tasks.firstOrNull { it.id == taskId }?.let { taskBeingEdited = it } }, Modifier.padding(padding)
             4 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
             else -> SettingsScreen(Modifier.padding(padding))
         }
@@ -211,8 +212,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             initialTask = taskBeingEdited,
             onDismiss = { taskBeingEdited = null },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries ->
-                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries) }
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries, urgency ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries, urgency) }
                 taskBeingEdited = null
             }
         )
@@ -221,8 +222,8 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
             allTasks = tasks,
-            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _ ->
-                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt)
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _, urgency ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt, urgency)
                 showAddDialog = false
             }
         )
@@ -503,10 +504,11 @@ private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
     allTasks: List<TaskEntity>,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean) -> Unit
+    onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean, String) -> Unit
 ) {
     var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
     var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
+    var urgency by remember(initialTask?.id) { mutableStateOf(initialTask?.urgency ?: "Normal") }
     var recurrenceRule by remember(initialTask?.id) { mutableStateOf(initialTask?.recurrenceRule ?: "None") }
     var applyToSeries by remember(initialTask?.id) { mutableStateOf(false) }
     var scheduledAt by remember(initialTask?.id) { mutableStateOf(initialTask?.scheduledAtMillis) }
@@ -593,6 +595,12 @@ private fun AddTaskDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("High", "Normal", "Low").forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option }, label = { Text(option) })
+                    }
+                }
+                Text("URGENCY", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("Low", "Normal", "High", "Critical").forEach { option ->
+                        FilterChip(selected = urgency == option, onClick = { urgency = option }, label = { Text(option, fontSize = 11.sp) })
                     }
                 }
                 OutlinedButton(onClick = {
@@ -715,7 +723,7 @@ private fun AddTaskDialog(
         confirmButton = {
             Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
-                onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries)
+                onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries, urgency)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)

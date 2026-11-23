@@ -48,14 +48,15 @@ object SmartScheduleRules {
    val reasons=mutableListOf<String>()
    reasons+=when(task.priority){"High"->"High importance";"Low"->"Lower importance";else->"Normal importance"}
    if(task.isTopPriority)reasons+="already marked Top 3"
+   reasons+=when(task.urgency){"Critical"->"critical urgency";"High"->"high urgency";"Normal"->"normal urgency";else->"low urgency"}
    task.deadlineAtMillis?.let{val delta=it-nowMillis;reasons+=when{delta<0->"deadline overdue";delta<=86400000L->"due within 24 hours";delta<=259200000L->"due within 3 days";else->"deadline scheduled"}}?:run{reasons+="no deadline set"}
    reasons+=if(task.plannedDurationMinutes==null)"estimated at $duration minutes" else "$duration-minute task"
    if(warnings.any{it.taskId==task.id&&it.type==SmartWarningType.DEADLINE_INSUFFICIENT})reasons+="deadline may be difficult to meet"
-   if(proposed==null){reasons+="no suitable opening in the planning window";warnings+=SmartPlanWarning(SmartWarningType.NO_AVAILABLE_SLOT,task.id,task.title,"No suitable opening was found in the next $horizonDays days.")}else reasons+="fits available time"
-   else if(existing==null||hasIssue){
+   if((existing==null||hasIssue)&&proposed!=null){
     val index=planningTasks.indexOfFirst{it.id==task.id}
     if(index>=0)planningTasks[index]=task.copy(scheduledAtMillis=proposed,plannedDurationMinutes=duration)
    }
+   if(proposed==null){reasons+="no suitable opening in the planning window";warnings+=SmartPlanWarning(SmartWarningType.NO_AVAILABLE_SLOT,task.id,task.title,"No suitable opening was found in the next $horizonDays days.")}else reasons+="fits available time"
    val availabilityBonus=if(proposed==null)-20 else when{proposed-nowMillis<=3600000L->12;proposed-nowMillis<=28800000L->6;else->0}
    SmartRecommendation(task.id,task.title,score(task,nowMillis,duration)+availabilityBonus,reasons.joinToString(" · "),proposed,duration,proposed!=null&&proposed!=existing,task.deadlineAtMillis)
   }.sortedByDescending{it.score}.take(3)
@@ -63,6 +64,7 @@ object SmartScheduleRules {
  }
  private fun score(task:TaskEntity,now:Long,duration:Int):Int {
   var score=when(task.priority){"High"->40;"Low"->10;else->25};if(task.isTopPriority)score+=15
+  score+=when(task.urgency){"Critical"->35;"High"->25;"Normal"->10;else->0}
   task.deadlineAtMillis?.let{val delta=it-now;score+=when{delta<0->50;delta<=86400000L->40;delta<=259200000L->30;delta<=604800000L->20;else->5}}
   score+=when{duration<=30->10;duration<=60->7;duration<=120->3;else->0};return score
  }

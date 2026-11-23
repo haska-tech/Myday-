@@ -42,6 +42,7 @@ fun SmartPlanScreen(
     nowMillis: Long,
     onApprove: (Long, Long, Int) -> Unit,
     onDurationCorrection: (Long, Int) -> Unit,
+    onEditTask: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -124,7 +125,7 @@ fun SmartPlanScreen(
         } else {
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 items(visible, key = { it.taskId }) { recommendation ->
-                    RecommendationCard(recommendation, onApprove)
+                    RecommendationCard(recommendation, onApprove, onEditTask)
                 }
                 if (plan.warnings.isNotEmpty()) {
                     item {
@@ -154,7 +155,7 @@ fun SmartPlanScreen(
 }
 
 @Composable
-private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long, Int) -> Unit) {
+private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long, Int) -> Unit, onEditTask: (Long) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -177,20 +178,24 @@ private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long
                         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(item.proposedStartMillis)),
                     color = Color(0xFF14243A), fontSize = 12.sp, fontWeight = FontWeight.SemiBold
                 )
-                if (item.changesSchedule) {
-                    Button(onClick = { onApprove(item.taskId, item.proposedStartMillis, item.durationMinutes) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB7E445), contentColor = Color(0xFF14243A))) {
-                        Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Approve suggested time")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (item.changesSchedule) {
+                        Button(onClick = { onApprove(item.taskId, item.proposedStartMillis, item.durationMinutes) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB7E445), contentColor = Color(0xFF14243A))) {
+                            Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Approve time")
+                        }
+                    } else {
+                        Text("Existing time fits.", color = Color(0xFF748094), fontSize = 10.sp, modifier = Modifier.weight(1f))
                     }
-                } else {
-                    Text("Your existing time fits the current plan. No change is needed.", color = Color(0xFF748094), fontSize = 10.sp)
+                    OutlinedButton(onClick = { onEditTask(item.taskId) }) { Text("Edit") }
                 }
             } else {
                 Text("No suitable slot found. Adjust the deadline, duration or commitments manually.",
                     color = Color(0xFF8A4B08), fontSize = 11.sp)
+                OutlinedButton(onClick = { onEditTask(item.taskId) }, modifier = Modifier.fillMaxWidth()) { Text("Edit task") }
             }
         }
     }

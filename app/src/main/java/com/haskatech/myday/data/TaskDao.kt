@@ -63,10 +63,10 @@ interface TaskDao {
 
     @Query("""
         UPDATE tasks SET title = :title, priority = :priority, scheduledAtMillis = :scheduledAtMillis,
-        reminderAtMillis = :reminderAtMillis, plannedDurationMinutes = :plannedDurationMinutes, deadlineAtMillis = :deadlineAtMillis
+        reminderAtMillis = :reminderAtMillis, plannedDurationMinutes = :plannedDurationMinutes, deadlineAtMillis = :deadlineAtMillis, urgency = :urgency
         WHERE id = :taskId
     """)
-    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?): Int
+    suspend fun updateDetails(taskId: Long, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?, urgency: String): Int
 
     @Query("UPDATE tasks SET plannedDurationMinutes = :minutes WHERE id = :taskId AND isCompleted = 0")
     suspend fun updatePlannedDuration(taskId: Long, minutes: Int): Int
@@ -75,7 +75,7 @@ interface TaskDao {
     suspend fun applyApprovedSchedule(taskId: Long, startMillis: Long, durationMinutes: Int): TaskEntity? {
         val current = getTaskById(taskId) ?: return null
         if (current.isCompleted || !SmartScheduleRules.isWithinDefaultWorkHours(startMillis, durationMinutes) ||
-            (current.deadlineAtMillis != null && (startMillis > current.deadlineAtMillis || durationMinutes <= 0 || startMillis > Long.MAX_VALUE - durationMinutes.toLong() * 60000L || startMillis + durationMinutes.toLong() * 60000L > current.deadlineAtMillis)) || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks().map { it.copy(plannedDurationMinutes = it.plannedDurationMinutes ?: 60) }, taskId).isNotEmpty()) return null
+            (current.deadlineAtMillis != null && (startMillis > current.deadlineAtMillis || durationMinutes <= 0 || startMillis > Long.MAX_VALUE - durationMinutes.toLong() * 60000L || startMillis + durationMinutes.toLong() * 60000L > current.deadlineAtMillis, current.urgency)) || TaskConflictRules.findConflicts(startMillis, durationMinutes, getAllTasks().map { it.copy(plannedDurationMinutes = it.plannedDurationMinutes ?: 60) }, taskId).isNotEmpty()) return null
         val reminderOffset = current.scheduledAtMillis?.let { old -> current.reminderAtMillis?.minus(old) }
         val reminder = reminderOffset?.let { startMillis + it }
         val changed = updateDetails(taskId, current.title, current.priority, startMillis, reminder, durationMinutes, current.deadlineAtMillis)

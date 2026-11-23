@@ -35,6 +35,16 @@ class DatabaseMigrationTest {
         assertEquals(listOf("ALTER TABLE tasks ADD COLUMN deadlineAtMillis INTEGER"), statements)
     }
 
+
+    @Test fun migration10To11AddsUrgencyWithNormalDefault() {
+        val statements = mutableListOf<String>()
+        val database = recordingDatabase(statements)
+        assertEquals(10, MyDayDatabase.MIGRATION_10_11.startVersion)
+        assertEquals(11, MyDayDatabase.MIGRATION_10_11.endVersion)
+        MyDayDatabase.MIGRATION_10_11.migrate(database)
+        assertEquals(listOf("ALTER TABLE tasks ADD COLUMN urgency TEXT NOT NULL DEFAULT 'Normal'"), statements)
+    }
+
     private fun recordingDatabase(statements: MutableList<String>) =
         Proxy.newProxyInstance(SupportSQLiteDatabase::class.java.classLoader,
             arrayOf(SupportSQLiteDatabase::class.java)) { _, method, args ->

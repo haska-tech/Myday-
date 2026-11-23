@@ -9,6 +9,13 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class MyDayBackupManagerTest {
+    @Test fun backupRoundTripPreservesUrgencyAndDeadline() {
+        val task = TaskEntity(id = 9, title = "Urgent", urgency = "Critical", deadlineAtMillis = 123456L)
+        val decoded = MyDayBackupManager.decode(MyDayBackupManager.encode(listOf(task), emptyList(), null))
+        assertEquals("Critical", decoded.tasks.single().urgency)
+        assertEquals(123456L, decoded.tasks.single().deadlineAtMillis)
+    }
+
     @Test fun roundTripsTasksEntriesAndActiveSession() {
         val tasks = listOf(TaskEntity(
             id = 7, title = "Clinic review", notes = "Bring files", scheduledAtMillis = 10_000L,
