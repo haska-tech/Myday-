@@ -643,17 +643,17 @@ private fun AddTaskDialog(
                 if (!scheduledInFuture) {
                     Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
-                if (scheduledAt != null) {
-                    Text("ESTIMATED DURATION", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        listOf<Int?>(null, 15, 30, 45, 60, 90, 120).forEach { minutes ->
-                            FilterChip(
-                                selected = plannedDurationMinutes == minutes,
-                                onClick = { plannedDurationMinutes = minutes },
-                                label = { Text(if (minutes == null) "None" else "${minutes}m", fontSize = 10.sp) }
-                            )
-                        }
+                Text("ESTIMATED DURATION", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    listOf<Int?>(null, 15, 30, 45, 60, 90, 120).forEach { minutes ->
+                        FilterChip(
+                            selected = plannedDurationMinutes == minutes,
+                            onClick = { plannedDurationMinutes = minutes },
+                            label = { Text(if (minutes == null) "Estimate later" else "${minutes}m", fontSize = 10.sp) }
+                        )
                     }
+                }
+                if (scheduledAt != null) {
                     if (conflicts.isNotEmpty()) {
                         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)), shape = RoundedCornerShape(12.dp)) {
                             Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
