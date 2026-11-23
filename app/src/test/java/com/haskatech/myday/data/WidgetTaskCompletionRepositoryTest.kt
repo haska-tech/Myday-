@@ -15,7 +15,7 @@ import org.robolectric.RuntimeEnvironment
 @RunWith(RobolectricTestRunner::class)
 class WidgetTaskCompletionRepositoryTest {
     private val database = Room.inMemoryDatabaseBuilder(
-        RuntimeEnvironment.getApplication(),
+        RuntimeEnvironment.application,
         MyDayDatabase::class.java
     ).allowMainThreadQueries().build()
 
