@@ -19,5 +19,6 @@ class MyDayDesignSystemTest {
         assertEquals(Color(0xFF8A4B08), MyDayColors.WarningText)
         assertEquals(Color(0xFFEAF2D4), MyDayColors.SoftLime)
         assertEquals(Color.White, MyDayColors.White)
+        assertEquals(Color(0xFFD8E0EA), MyDayColors.OnNavyMuted)
     }
 }
