@@ -54,7 +54,7 @@ private val MyDayColorScheme = lightColorScheme(
 )
 
 
-private val MyDayTypography = Typography(
+internal val MyDayTypography = Typography(
     headlineLarge = TextStyle(
         fontSize = 29.sp,
         lineHeight = 35.sp,
