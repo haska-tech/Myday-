@@ -91,7 +91,7 @@ fun SmartPlanScreen(
                 Text("AVAILABLE TODAY", color = Color(0xFFB7E445), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Text("${plan.availableMinutesToday / 60}h ${plan.availableMinutesToday % 60}m",
                     color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
-                Text("Estimated free time between 08:00 and 18:00, after scheduled commitments.",
+                Text("Estimated free time between 08:00 and 18:00, after commitments. Tasks without a duration use a 60-minute estimate.",
                     color = Color.LightGray, fontSize = 11.sp)
             }
         }
@@ -167,6 +167,10 @@ private fun RecommendationCard(item: SmartRecommendation, onApprove: (Long, Long
                 Text(item.title, color = Color(0xFF14243A), fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
             }
             Text(item.reason, color = Color(0xFF748094), fontSize = 11.sp)
+            item.deadlineAtMillis?.let { deadline ->
+                Text("Deadline · " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(deadline)),
+                    color = Color(0xFF8A4B08), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            }
             if (item.proposedStartMillis != null) {
                 Text(
                     (if (item.changesSchedule) "Suggested time · " else "Current time · ") +
