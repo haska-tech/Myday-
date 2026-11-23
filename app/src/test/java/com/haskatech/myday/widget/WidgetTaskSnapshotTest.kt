@@ -31,6 +31,25 @@ class WidgetTaskSnapshotTest {
   val inbox=WidgetTaskSnapshot.create(listOf(TaskEntity(id=2,title="Inbox")),now,zone)
   assertEquals(WidgetEmptyState.NONE_PLANNED,empty.emptyState); assertEquals(WidgetEmptyState.NONE_PLANNED,inbox.emptyState)
  }
+ @Test fun dailyProgressCountsCompletedAndActiveScheduledTasksForLocalDate() {
+  val now=Instant.parse("2026-11-23T06:00:00Z").toEpochMilli()
+  val s=WidgetTaskSnapshot.create(listOf(
+   TaskEntity(id=1,title="Done",scheduledAtMillis=now-60_000,isCompleted=true),
+   TaskEntity(id=2,title="Active",scheduledAtMillis=now+60_000),
+   TaskEntity(id=3,title="Later",scheduledAtMillis=now+3_600_000),
+   TaskEntity(id=4,title="Tomorrow",scheduledAtMillis=now+86_400_000)
+  ),now,zone)
+  assertEquals(1,s.completedTodayCount)
+  assertEquals(3,s.totalTodayCount)
+  assertEquals(33,s.progressPercent)
+  assertEquals("1/3 done",s.progressLabel)
+ }
+ @Test fun emptyDailyProgressIsSafe() {
+  val now=Instant.parse("2026-11-23T06:00:00Z").toEpochMilli()
+  val s=WidgetTaskSnapshot.create(listOf(TaskEntity(id=1,title="Inbox")),now,zone)
+  assertEquals(0,s.progressPercent)
+  assertEquals("No scheduled tasks",s.progressLabel)
+ }
  @Test fun topPrioritiesAreLimitedToThreeInSourceOrder() {
   val now=Instant.parse("2026-11-23T06:00:00Z").toEpochMilli()
   val tasks=(1L..4L).map{TaskEntity(id=it,title="P$it",isTopPriority=true)}
