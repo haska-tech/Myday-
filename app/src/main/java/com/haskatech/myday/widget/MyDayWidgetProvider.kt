@@ -25,11 +25,10 @@ import java.util.Locale
 
 class MyDayWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_REFRESH) {
-            refreshAll(context)
-        } else {
-            super.onReceive(context, intent)
-        }
+        super.onReceive(context, intent)
+        if (WidgetRefreshRules.shouldRefresh(intent.action) &&
+            intent.action != AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        ) refreshAll(context)
     }
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -95,22 +94,38 @@ class MyDayWidgetProvider : AppWidgetProvider() {
 
         private fun render(context: Context, manager: AppWidgetManager, widgetId: Int, snapshot: WidgetTaskSnapshot) {
             val options = manager.getAppWidgetOptions(widgetId)
-            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110)
-            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
-            val specs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                listOf(
-                    Triple(SizeF(110f, 110f), R.layout.myday_widget_small, WidgetSizeClass.SMALL),
-                    Triple(SizeF(180f, 110f), R.layout.myday_widget_medium, WidgetSizeClass.MEDIUM),
-                    Triple(SizeF(260f, 160f), R.layout.myday_widget_large, WidgetSizeClass.LARGE)
-                )
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(110)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110).coerceAtLeast(110)
+            val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, maxOf(minWidth, 300)).coerceAtLeast(minWidth)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, maxOf(minHeight, 180)).coerceAtLeast(minHeight)
+            val specs: List<Triple<SizeF, Int, Int>> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                WidgetLayoutRules.responsiveBreakpoints(minWidth.toFloat(), maxWidth.toFloat(), minHeight.toFloat(), maxHeight.toFloat())
+                    .map { point ->
+                        val layout = when (point.layout) {
+                            WidgetLayoutSize.SMALL -> R.layout.myday_widget_small
+                            WidgetLayoutSize.MEDIUM -> R.layout.myday_widget_medium
+                            WidgetLayoutSize.LARGE -> R.layout.myday_widget_large
+                        }
+                        val limit = when (point.layout) {
+                            WidgetLayoutSize.SMALL -> 2
+                            WidgetLayoutSize.MEDIUM -> 5
+                            WidgetLayoutSize.LARGE -> 8
+                        }
+                        Triple(SizeF(point.widthDp, point.heightDp), layout, limit)
+                    }
             } else {
-                val sizeClass = WidgetSizeRules.choose(minWidth, minHeight)
-                val layout = when (sizeClass) {
-                    WidgetSizeClass.SMALL -> R.layout.myday_widget_small
-                    WidgetSizeClass.MEDIUM -> R.layout.myday_widget_medium
-                    WidgetSizeClass.LARGE -> R.layout.myday_widget_large
+                val selected = WidgetLayoutRules.legacyLayout(minWidth, minHeight)
+                val layout = when (selected) {
+                    WidgetLayoutSize.SMALL -> R.layout.myday_widget_small
+                    WidgetLayoutSize.MEDIUM -> R.layout.myday_widget_medium
+                    WidgetLayoutSize.LARGE -> R.layout.myday_widget_large
                 }
-                listOf(Triple(SizeF(minWidth.toFloat(), minHeight.toFloat()), layout, sizeClass))
+                val limit = when (selected) {
+                    WidgetLayoutSize.SMALL -> 2
+                    WidgetLayoutSize.MEDIUM -> 5
+                    WidgetLayoutSize.LARGE -> 8
+                }
+                listOf(Triple(SizeF(minWidth.toFloat(), minHeight.toFloat()), layout, limit))
             }
 
             val dateFormat = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).apply {
@@ -137,21 +152,22 @@ class MyDayWidgetProvider : AppWidgetProvider() {
             val quickAdd = quickAddPendingIntent(context, widgetId)
             val viewsBySize = linkedMapOf<SizeF, RemoteViews>()
 
-            specs.forEach { (size, layout, sizeClass) ->
+            specs.forEach { (size, layout, limit) ->
                 val views = RemoteViews(context.packageName, layout)
                 views.setTextViewText(R.id.widget_date, dateFormat.format(Date(snapshot.generatedAtMillis)))
                 views.setTextViewText(
                     R.id.widget_priorities,
                     if (snapshot.topPriorities.isEmpty()) "TODAY'S TASKS" else "TOP PRIORITIES"
                 )
-                views.setTextViewText(R.id.widget_progress_label, snapshot.progressLabel)
-                views.setProgressBar(R.id.widget_progress_bar, 100, snapshot.progressPercent, false)
+                views.setTextViewText(R.id.widget_progress_label, "TODAY'S PROGRESS · ${snapshot.progressLabel}")
+                views.setProgressBar(R.id.widget_progress, 100, snapshot.progressPercent, false)
+                views.setViewVisibility(R.id.widget_progress, if (snapshot.totalTodayCount == 0) View.GONE else View.VISIBLE)
                 views.setOnClickPendingIntent(R.id.widget_title, open)
                 views.setOnClickPendingIntent(R.id.widget_footer, open)
                 views.setOnClickPendingIntent(R.id.widget_refresh, refresh)
-                views.setOnClickPendingIntent(R.id.widget_add, quickAdd)
+                views.setOnClickPendingIntent(R.id.widget_quick_add, quickAdd)
                 views.removeAllViews(R.id.widget_task_list)
-                val rows = visibleTasks.take(WidgetSizeRules.taskLimit(sizeClass))
+                val rows = visibleTasks.take(limit)
                 views.setTextViewText(R.id.widget_tasks, empty)
                 views.setViewVisibility(R.id.widget_tasks, if (rows.isEmpty()) View.VISIBLE else View.GONE)
                 rows.forEach { task ->
