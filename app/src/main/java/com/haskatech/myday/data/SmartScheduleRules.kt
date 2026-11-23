@@ -14,7 +14,7 @@ object SmartScheduleRules {
  const val DEFAULT_MAX_DAILY_MINUTES=480
  private data class Busy(val start:Long,val end:Long)
  fun analyze(tasks:List<TaskEntity>,nowMillis:Long,zone:ZoneId=ZoneId.systemDefault(),workdayStartHour:Int=8,workdayEndHour:Int=18,maxDailyMinutes:Int=480,horizonDays:Int=7):SmartPlan {
-  require(workdayStartHour in 0..23 && workdayEndHour in 1..24 && workdayStartHour<workdayEndHour)
+  require(workdayStartHour in 0..23 && workdayEndHour in 1..23 && workdayStartHour<workdayEndHour)
   require(maxDailyMinutes>0 && horizonDays>0)
   val active=tasks.filterNot{it.isCompleted};val warnings=mutableListOf<SmartPlanWarning>();val scheduled=active.filter{it.scheduledAtMillis!=null}
   scheduled.forEach{task->
@@ -39,7 +39,7 @@ object SmartScheduleRules {
   }
   val recommendations=active.map{task->
    val duration=task.plannedDurationMinutes?:DEFAULT_DURATION_MINUTES;val existing=task.scheduledAtMillis
-   val hasIssue=warnings.any{it.taskId==task.id&&(it.type==SmartWarningType.OVERLAP||it.type==SmartWarningType.OUTSIDE_WORK_HOURS)}
+   val hasIssue=warnings.any{it.taskId==task.id&&(it.type==SmartWarningType.OVERLAP||it.type==SmartWarningType.OUTSIDE_WORK_HOURS||it.type==SmartWarningType.DEADLINE_INSUFFICIENT)}
    val proposed=if(existing!=null&&!hasIssue)existing else findSlot(task,active,nowMillis,zone,workdayStartHour,workdayEndHour,horizonDays)
    val reasons=mutableListOf<String>()
    reasons+=when(task.priority){"High"->"High importance";"Low"->"Lower importance";else->"Normal importance"}

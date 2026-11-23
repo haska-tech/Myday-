@@ -29,7 +29,8 @@ object MyDayBackupManager {
         val session = root.optJSONObject("activeSession")?.toSession()
         require(tasks.map { it.id }.toSet().size == tasks.size) { "Backup contains duplicate task IDs." }
         require(tasks.all { it.id > 0 && it.title.isNotBlank() && it.timeSpentMillis >= 0L &&
-            (it.plannedDurationMinutes == null || it.plannedDurationMinutes > 0) }) {
+            (it.plannedDurationMinutes == null || it.plannedDurationMinutes > 0) &&
+            (it.deadlineAtMillis == null || it.scheduledAtMillis == null || it.deadlineAtMillis >= it.scheduledAtMillis) }) {
             "Backup contains invalid task data."
         }
         val taskIds = tasks.map { it.id }.toSet()
