@@ -99,6 +99,7 @@ private fun MyDayApp(
     tasksViewModel: TasksViewModel = viewModel()
 ) {
     var tab by remember { mutableIntStateOf(0) }
+    var tasksInitialFilter by remember { mutableStateOf("All") }
     var showAddDialog by remember { mutableStateOf(false) }
     var handledQuickAddRequest by remember { mutableIntStateOf(0) }
     LaunchedEffect(openQuickAddRequest) {
@@ -191,11 +192,11 @@ private fun MyDayApp(
             0 -> TodayScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) },
-                onOpenTasks = { tab = 1 }, modifier = Modifier.padding(padding))
+                onOpenTasks = { filter -> tasksInitialFilter = filter; tab = 1 }, modifier = Modifier.padding(padding))
             1 -> TasksScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
-                { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
+                { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding), initialFilter = tasksInitialFilter)
             2 -> CalendarScreen(tasks, settings.weekStartDay, Modifier.padding(padding))
             3 -> SmartPlanScreen(
                 tasks = tasks,
@@ -258,7 +259,7 @@ private fun TodayScreen(
     tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, nowMillis: Long,
     onToggle: (TaskEntity, Boolean) -> Unit, onTopPriority: (TaskEntity, Boolean) -> Unit,
     onStartTracking: (TaskEntity) -> Unit, onPauseTracking: (TaskEntity) -> Unit, onStopTracking: (TaskEntity) -> Unit,
-    onOpenTasks: () -> Unit, modifier: Modifier = Modifier
+    onOpenTasks: (String) -> Unit, modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val today = java.time.LocalDate.now(PlannerTime.zoneId())
@@ -287,12 +288,12 @@ private fun TodayScreen(
             }
         }
         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Completed", completedToday, Icons.Default.CheckCircle, Modifier.weight(1f), onOpenTasks)
-            SummaryCard("Pending", todayTasks.size, Icons.Default.PendingActions, Modifier.weight(1f), onOpenTasks)
+            SummaryCard("Completed", completedToday, Icons.Default.CheckCircle, Modifier.weight(1f)) { onOpenTasks("Completed") }
+            SummaryCard("Pending", todayTasks.size, Icons.Default.PendingActions, Modifier.weight(1f)) { onOpenTasks("Active") }
         } }
         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Overdue", overdue.size, Icons.Default.Warning, Modifier.weight(1f), onOpenTasks)
-            SummaryCard("Due soon", dueSoon.size, Icons.Default.Schedule, Modifier.weight(1f), onOpenTasks)
+            SummaryCard("Overdue", overdue.size, Icons.Default.Warning, Modifier.weight(1f)) { onOpenTasks("Overdue") }
+            SummaryCard("Due soon", dueSoon.size, Icons.Default.Schedule, Modifier.weight(1f)) { onOpenTasks("Due soon") }
         } }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface), shape = RoundedCornerShape(22.dp)) {
@@ -322,7 +323,7 @@ private fun TodayScreen(
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("NEXT ON YOUR SCHEDULE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(nextTask?.title ?: "No upcoming scheduled task", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                    TextButton(onClick = onOpenTasks) { Text("View tasks") }
+                    TextButton(onClick = { onOpenTasks("All") }) { Text("View tasks") }
                 }
             }
         }
@@ -360,17 +361,27 @@ private fun TasksScreen(
     onStartTracking: (TaskEntity) -> Unit,
     onPauseTracking: (TaskEntity) -> Unit,
     onStopTracking: (TaskEntity) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialFilter: String = "All"
 ) {
-    var taskFilter by remember { mutableStateOf("All") }
-    val filteredTasks = com.haskatech.myday.data.TaskGrouping.filterByStatus(
-        tasks,
-        when (taskFilter) {
-            "Active" -> com.haskatech.myday.data.TaskStatusFilter.ACTIVE
-            "Completed" -> com.haskatech.myday.data.TaskStatusFilter.COMPLETED
-            else -> com.haskatech.myday.data.TaskStatusFilter.ALL
+    var taskFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
+    val filteredTasks = when (taskFilter) {
+        "Overdue" -> tasks.filter { !it.isCompleted && it.deadlineAtMillis != null && it.deadlineAtMillis < nowMillis }
+        "Due soon" -> {
+            val today = java.time.LocalDate.now(PlannerTime.zoneId())
+            tasks.filter { !it.isCompleted && it.deadlineAtMillis?.let { millis ->
+                val date = PlannerTime.localDateAt(millis); date >= today && date <= today.plusDays(3)
+            } == true }
         }
-    )
+        else -> com.haskatech.myday.data.TaskGrouping.filterByStatus(
+            tasks,
+            when (taskFilter) {
+                "Active" -> com.haskatech.myday.data.TaskStatusFilter.ACTIVE
+                "Completed" -> com.haskatech.myday.data.TaskStatusFilter.COMPLETED
+                else -> com.haskatech.myday.data.TaskStatusFilter.ALL
+            }
+        )
+    }
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
@@ -378,7 +389,7 @@ private fun TasksScreen(
         Text("Everything you need to move forward.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("All", "Active", "Completed").forEach { option ->
+            listOf("All", "Active", "Completed", "Overdue", "Due soon").forEach { option ->
                 FilterChip(
                     selected = taskFilter == option,
                     onClick = { taskFilter = option },
