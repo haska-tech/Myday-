@@ -70,3 +70,4 @@ dependencies {
     testImplementation("androidx.room:room-testing:2.6.1")
     testImplementation("org.robolectric:robolectric:4.14.1")
 }
+// [build] Verify MyDay v20 after category Flow compile fix.
