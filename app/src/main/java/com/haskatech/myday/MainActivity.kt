@@ -1143,6 +1143,8 @@ private fun SettingsScreen(
         0 -> "At scheduled time"
         else -> "${settings.defaultReminderMinutes} minutes before"
     }
+    val notificationsEnabled = Build.VERSION.SDK_INT < 33 ||
+        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("MAKE IT YOURS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
@@ -1233,6 +1235,29 @@ private fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("New tasks will use this reminder lead time when you enable a reminder. You can still change it for each task.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(
+                        if (notificationsEnabled) "Android notifications: enabled"
+                        else "Android notifications: permission not granted. Scheduled reminders may not appear.",
+                        color = if (notificationsEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                        fontSize = 11.sp
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    Intent("android.settings.APP_NOTIFICATION_SETTINGS")
+                                        .putExtra("android.provider.extra.APP_PACKAGE", context.packageName)
+                                )
+                            }.onFailure {
+                                Toast.makeText(context, "Open MyDay notification settings from Android Settings.", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Android notification settings")
+                    }
                     listOf(-1, 0, 5, 10, 15).forEach { minutes ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = settings.defaultReminderMinutes == minutes, onClick = { onReminderChange(minutes) })
