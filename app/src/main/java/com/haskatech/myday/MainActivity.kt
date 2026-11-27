@@ -190,7 +190,8 @@ private fun MyDayApp(
         when (tab) {
             0 -> TodayScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
-                { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
+                { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) },
+                onOpenTasks = { tab = 1 }, modifier = Modifier.padding(padding))
             1 -> TasksScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
@@ -254,84 +255,99 @@ private fun MyDayApp(
 
 @Composable
 private fun TodayScreen(
-    tasks: List<TaskEntity>,
-    tracking: TimeTrackingSessionEntity?,
-    nowMillis: Long,
-    onToggle: (TaskEntity, Boolean) -> Unit,
-    onTopPriority: (TaskEntity, Boolean) -> Unit,
-    onStartTracking: (TaskEntity) -> Unit,
-    onPauseTracking: (TaskEntity) -> Unit,
-    onStopTracking: (TaskEntity) -> Unit,
-    modifier: Modifier = Modifier
+    tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, nowMillis: Long,
+    onToggle: (TaskEntity, Boolean) -> Unit, onTopPriority: (TaskEntity, Boolean) -> Unit,
+    onStartTracking: (TaskEntity) -> Unit, onPauseTracking: (TaskEntity) -> Unit, onStopTracking: (TaskEntity) -> Unit,
+    onOpenTasks: () -> Unit, modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val completed = tasks.count { it.isCompleted }
+    val today = java.time.LocalDate.now(PlannerTime.zoneId())
+    val todayTasks = tasks.filter { !it.isCompleted && (it.scheduledAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true || it.deadlineAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true) }
+    val completedToday = tasks.count { it.isCompleted && (it.scheduledAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true || it.deadlineAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true) }
+    val committed = todayTasks.size + completedToday
+    val percent = if (committed == 0) 0 else completedToday * 100 / committed
+    val overdue = tasks.filter { !it.isCompleted && it.deadlineAtMillis != null && PlannerTime.localDateAt(it.deadlineAtMillis) < today }
+    val dueSoon = tasks.filter { !it.isCompleted && it.deadlineAtMillis?.let { t -> val d = PlannerTime.localDateAt(t); d >= today && d <= today.plusDays(3) } == true }
     val topTasks = tasks.filter { it.isTopPriority && !it.isCompleted }
-    LazyColumn(modifier.fillMaxSize().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val nextTask = tasks.filter { !it.isCompleted && it.scheduledAtMillis != null && it.scheduledAtMillis!! >= nowMillis }.minByOrNull { it.scheduledAtMillis!! }
+    LazyColumn(modifier.fillMaxSize().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text(
-                java.time.LocalDate.now(PlannerTime.zoneId())
-                    .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault()))
-                    .uppercase(Locale.getDefault()),
-                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
-            )
-            Text("Make today count.", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
-            Text("A little progress, every day.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-
+            Text(today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())).uppercase(Locale.getDefault()), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+            Text("Your day, in focus.", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+            Text("A clear view of what matters next.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("DAILY PROGRESS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold); Text("$percent%", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) }
+                    LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth().height(8.dp), color = Lime, trackColor = MaterialTheme.colorScheme.surfaceVariant)
+                    Text("$completedToday of $committed committed tasks completed today", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                }
+            }
+        }
+        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SummaryCard("Completed", completedToday, Icons.Default.CheckCircle, Modifier.weight(1f), onOpenTasks)
+            SummaryCard("Pending", todayTasks.size, Icons.Default.PendingActions, Modifier.weight(1f), onOpenTasks)
+        } }
+        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SummaryCard("Overdue", overdue.size, Icons.Default.Warning, Modifier.weight(1f), onOpenTasks)
+            SummaryCard("Due soon", dueSoon.size, Icons.Default.Schedule, Modifier.weight(1f), onOpenTasks)
+        } }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface), shape = RoundedCornerShape(22.dp)) {
+                Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("TODAY'S TOP 3 · ${topTasks.size}/3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    if (topTasks.isEmpty()) Text("Choose up to three tasks that matter most.", color = MyDayColors.White, fontSize = 14.sp) else topTasks.forEach { Text("• ${it.title}", color = MyDayColors.White, fontSize = 14.sp) }
+                    Text("Manage priorities in Tasks.", color = MyDayColors.OnNavyMuted, fontSize = 11.sp)
+                }
+            }
+        }
+        if (overdue.isNotEmpty() || dueSoon.isNotEmpty()) item {
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("DEADLINE ATTENTION", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                (overdue.take(3) + dueSoon.take(3)).distinctBy { it.id }.forEach { task ->
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) { Text(task.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold); Text(if (task in overdue) "OVERDUE" else "DUE SOON", color = MaterialTheme.colorScheme.error, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                            TextButton(onClick = { onToggle(task, true) }) { Text("Complete") }
+                        }
+                    }
+                }
+                Text("Deadlines are never moved automatically.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(18.dp)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    Text("NEXT ON YOUR SCHEDULE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(nextTask?.title ?: "No upcoming scheduled task", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                    TextButton(onClick = onOpenTasks) { Text("View tasks") }
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(18.dp)) {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("FOCUS TIMER", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Make time for what matters.", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                        Text("Start a focused work session.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                    Button(onClick = { context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSecondary)) {
-                        Text("Focus")
-                    }
+                    Column(Modifier.weight(1f)) { Text("FOCUS & TIME", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold); Text(if (tracking != null) "A tracking session is active" else "Make time for what matters", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) }
+                    Button(onClick = { context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java)) }, colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSecondary)) { Text("Focus") }
                 }
             }
         }
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("TODAY'S TOP 3 · ${topTasks.size}/3", color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Spacer(Modifier.height(8.dp))
-                    if (topTasks.isEmpty()) {
-                        Text("Choose up to three tasks that matter most.", color = MyDayColors.White, fontSize = 16.sp)
-                    } else {
-                        topTasks.forEach { Text("• ${it.title}", color = MyDayColors.White, fontSize = 15.sp) }
-                    }
-                    Text("Tap TOP 3 beside a task to add it here.", color = MyDayColors.OnNavyMuted, fontSize = 12.sp)
-                }
-            }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Your tasks", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                Text("$completed / ${tasks.size} done", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-            }
-        }
-        if (tasks.isEmpty()) {
-            item { EmptyState(Icons.Default.EventNote, "A fresh start", "Your day is clear. Add a task to give it direction.") }
-        } else {
-            items(tasks, key = { it.id }) { task -> TaskRow(task, onToggle, onTopPriority, tracking = tracking, nowMillis = nowMillis, onStartTracking = onStartTracking, onPauseTracking = onPauseTracking, onStopTracking = onStopTracking) }
-        }
-        item { Spacer(Modifier.height(80.dp)) }
+        item { Spacer(Modifier.height(75.dp)) }
     }
 }
 
+@Composable
+private fun SummaryCard(title: String, count: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(modifier.clickable(onClick = onClick), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            Text(count.toString(), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+        }
+    }
+}
 @Composable
 private fun TasksScreen(
     tasks: List<TaskEntity>,
