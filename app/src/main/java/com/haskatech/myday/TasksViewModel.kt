@@ -25,6 +25,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     private val timeTrackingRepository = TaskTimeTrackingRepository(database)
 
     init {
+        viewModelScope.launch { categoryRepository.ensureDefaults() }
         viewModelScope.launch {
             repository.refreshRecurringOccurrences()
             // AlarmManager schedules are not durable across force-stop; rebuild them from Room
