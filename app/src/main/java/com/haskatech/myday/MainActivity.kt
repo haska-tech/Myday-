@@ -233,8 +233,9 @@ private fun MyDayApp(
             onDismiss = { taskBeingEdited = null },
             allTasks = tasks,
             defaultReminderMinutes = settings.defaultReminderMinutes,
-            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries, urgency ->
-                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries, urgency) }
+            categories = categories,
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries, urgency, categoryId ->
+                taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries, urgency, categoryId) }
                 taskBeingEdited = null
             }
         )
@@ -244,8 +245,9 @@ private fun MyDayApp(
             onDismiss = { showAddDialog = false },
             allTasks = tasks,
             defaultReminderMinutes = settings.defaultReminderMinutes,
-            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _, urgency ->
-                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt, urgency)
+            categories = categories,
+            onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _, urgency, categoryId ->
+                tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt, urgency, categoryId)
                 showAddDialog = false
             }
         )
@@ -666,10 +668,12 @@ private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
     allTasks: List<TaskEntity>,
     defaultReminderMinutes: Int = 15,
+    categories: List<CategoryEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean, String) -> Unit
+    onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean, String, Long?) -> Unit
 ) {
     var title by remember(initialTask?.id) { mutableStateOf(initialTask?.title.orEmpty()) }
+    var categoryId by remember(initialTask?.id) { mutableStateOf(initialTask?.categoryId) }
     var priority by remember(initialTask?.id) { mutableStateOf(initialTask?.priority ?: "Normal") }
     var urgency by remember(initialTask?.id) { mutableStateOf(initialTask?.urgency ?: "Normal") }
     var recurrenceRule by remember(initialTask?.id) { mutableStateOf(initialTask?.recurrenceRule ?: "None") }
@@ -756,6 +760,18 @@ private fun AddTaskDialog(
                     ) {
                         Icon(Icons.Default.Mic, contentDescription = "Add task by voice", tint = MaterialTheme.colorScheme.onSurface)
                     }
+                    }
+                }
+                var categoryMenuExpanded by remember { mutableStateOf(false) }
+                Text("CATEGORY", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Box {
+                    OutlinedButton(onClick = { categoryMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(categories.firstOrNull { it.id == categoryId }?.name ?: "Inbox · Uncategorized")
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    }
+                    DropdownMenu(expanded = categoryMenuExpanded, onDismissRequest = { categoryMenuExpanded = false }) {
+                        DropdownMenuItem(text = { Text("Inbox · Uncategorized") }, onClick = { categoryId = null; categoryMenuExpanded = false })
+                        categories.forEach { category -> DropdownMenuItem(text = { Text(category.name) }, onClick = { categoryId = category.id; categoryMenuExpanded = false }) }
                     }
                 }
                 Text("PRIORITY", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -890,7 +906,7 @@ private fun AddTaskDialog(
         confirmButton = {
             Button(onClick = {
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
-                onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries, urgency)
+                onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries, urgency, categoryId)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSecondary)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
