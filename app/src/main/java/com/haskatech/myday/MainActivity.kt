@@ -200,8 +200,8 @@ private fun MyDayApp(
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding), initialFilter = tasksInitialFilter,
                 categories = categories, onSetCategory = { id, categoryId -> tasksViewModel.setTaskCategory(id, categoryId) },
-                onCreateCategory = { name, color -> tasksViewModel.createCategory(name, color) },
-                onRenameCategory = { id, name, color -> tasksViewModel.renameCategory(id, name, color) },
+                onCreateCategory = { name, color, icon -> tasksViewModel.createCategory(name, color, icon) },
+                onRenameCategory = { id, name, color, icon -> tasksViewModel.renameCategory(id, name, color, icon) },
                 onDeleteCategory = { id -> tasksViewModel.deleteCategory(id) })
             2 -> CalendarScreen(tasks, settings.weekStartDay, Modifier.padding(padding))
             3 -> SmartPlanScreen(
@@ -371,8 +371,8 @@ private fun TasksScreen(
     initialFilter: String = "All",
     categories: List<CategoryEntity> = emptyList(),
     onSetCategory: (Long, Long?) -> Unit = { _, _ -> },
-    onCreateCategory: (String, String) -> Unit = { _, _ -> },
-    onRenameCategory: (Long, String, String) -> Unit = { _, _, _ -> },
+    onCreateCategory: (String, String, String) -> Unit = { _, _, _ -> },
+    onRenameCategory: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
     onDeleteCategory: (Long) -> Unit = {}
 ) {
     var taskFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
@@ -509,8 +509,8 @@ private fun CategoryAssignmentRow(task: TaskEntity, categories: List<CategoryEnt
 @Composable
 private fun CategoryManagerDialog(
     categories: List<CategoryEntity>,
-    onCreate: (String, String) -> Unit,
-    onRename: (Long, String, String) -> Unit,
+    onCreate: (String, String, String) -> Unit,
+    onRename: (Long, String, String, String) -> Unit,
     onDelete: (Long) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -518,6 +518,7 @@ private fun CategoryManagerDialog(
     val selected = categories.firstOrNull { it.id == selectedId }
     var name by remember(selectedId) { mutableStateOf(selected?.name.orEmpty()) }
     var color by remember(selectedId) { mutableStateOf(selected?.colorHex ?: "#5B8DEF") }
+    var iconKey by remember(selectedId) { mutableStateOf(selected?.iconKey ?: "folder") }
     var creating by remember { mutableStateOf(false) }
     val colors = listOf("#5B8DEF", "#7C6EE6", "#E58A4E", "#38A88A", "#C49A36", "#B36BC7", "#D65D73", "#607D8B")
     AlertDialog(
@@ -532,9 +533,15 @@ private fun CategoryManagerDialog(
                         if (category.isDefault) Text("Default", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                OutlinedButton(onClick = { selectedId = null; creating = true; name = ""; color = colors.first() }, modifier = Modifier.fillMaxWidth()) { Text("+ Create category") }
+                OutlinedButton(onClick = { selectedId = null; creating = true; name = ""; color = colors.first(); iconKey = "folder" }, modifier = Modifier.fillMaxWidth()) { Text("+ Create category") }
                 if (creating || selected != null) {
                     OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Category name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Text("Icon", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        listOf("folder", "work", "home", "favorite", "school", "wallet").forEach { key ->
+                            FilterChip(selected = iconKey == key, onClick = { iconKey = key }, label = { Text(key.replaceFirstChar { it.uppercase() }) })
+                        }
+                    }
                     Text("Colour", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         colors.forEach { swatch ->
@@ -549,7 +556,7 @@ private fun CategoryManagerDialog(
                 if (selected != null) TextButton(onClick = { onDelete(selected.id); selectedId = null }) { Text("Delete") }
                 TextButton(onClick = {
                     if (name.isNotBlank()) {
-                        if (creating) onCreate(name, color) else selected?.let { onRename(it.id, name, color) }
+                        if (creating) onCreate(name, color, iconKey) else selected?.let { onRename(it.id, name, color, iconKey) }
                     }
                     onDismiss()
                 }) { Text(if (creating) "Create" else "Save") }
