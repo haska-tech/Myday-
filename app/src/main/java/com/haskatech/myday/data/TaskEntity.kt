@@ -21,5 +21,7 @@ data class TaskEntity(
     /** Optional planned block length; null preserves the legacy point-in-time task model. */
     val plannedDurationMinutes: Int? = null,
     val deadlineAtMillis: Long? = null,
-    @ColumnInfo(defaultValue = "'Normal'") val urgency: String = "Normal"
+    @ColumnInfo(defaultValue = "'Normal'") val urgency: String = "Normal",
+    /** Null means Inbox / Uncategorized; existing tasks remain intact during migration. */
+    val categoryId: Long? = null
 )
