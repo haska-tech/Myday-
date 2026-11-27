@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -50,6 +51,10 @@ import com.haskatech.myday.data.TimeTrackingSessionEntity
 import com.haskatech.myday.data.TimeTrackingEntryEntity
 import com.haskatech.myday.focus.TimeTrackingRules
 import com.haskatech.myday.focus.VoiceCaptureRules
+import com.haskatech.myday.settings.SettingsRepository
+import com.haskatech.myday.settings.MyDaySettings
+import com.haskatech.myday.settings.ThemeMode
+import com.haskatech.myday.settings.WeekStartDay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -65,8 +70,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (intent.getBooleanExtra(EXTRA_OPEN_QUICK_ADD, false)) quickAddRequest.intValue++
         setContent {
-            MyDayTheme {
-                MyDayApp(openQuickAddRequest = quickAddRequest.intValue)
+            val settingsRepository = remember { SettingsRepository(applicationContext) }
+            val settings by settingsRepository.settings.collectAsStateWithLifecycle(initialValue = MyDaySettings())
+            MyDayTheme(themeMode = settings.themeMode) {
+                MyDayApp(
+                    openQuickAddRequest = quickAddRequest.intValue,
+                    settings = settings,
+                    settingsRepository = settingsRepository
+                )
             }
         }
     }
@@ -84,7 +95,12 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = viewModel()) {
+private fun MyDayApp(
+    openQuickAddRequest: Int,
+    settings: MyDaySettings,
+    settingsRepository: SettingsRepository,
+    tasksViewModel: TasksViewModel = viewModel()
+) {
     var tab by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
     var handledQuickAddRequest by remember { mutableIntStateOf(0) }
@@ -181,7 +197,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
                 { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding))
-            2 -> CalendarScreen(tasks, Modifier.padding(padding))
+            2 -> CalendarScreen(tasks, settings.weekStartDay, Modifier.padding(padding))
             3 -> SmartPlanScreen(
                 tasks = tasks,
                 nowMillis = nowMillis,
@@ -194,7 +210,14 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
                 modifier = Modifier.padding(padding)
             )
             4 -> InsightsScreen(tasks, activeTracking, timeTrackingEntries, nowMillis, Modifier.padding(padding))
-            else -> SettingsScreen(Modifier.padding(padding))
+            else -> SettingsScreen(
+                modifier = Modifier.padding(padding),
+                settings = settings,
+                onThemeChange = { value -> scope.launch { settingsRepository.setTheme(value) } },
+                onWeekStartChange = { value -> scope.launch { settingsRepository.setWeekStart(value) } },
+                onReminderChange = { value -> scope.launch { settingsRepository.setDefaultReminderMinutes(value) } },
+                onOpenInsights = { tab = 4 }
+            )
         }
     }
 
@@ -203,6 +226,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
             initialTask = taskBeingEdited,
             onDismiss = { taskBeingEdited = null },
             allTasks = tasks,
+            defaultReminderMinutes = settings.defaultReminderMinutes,
             onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, _, durationMinutes, applyToSeries, urgency ->
                 taskBeingEdited?.let { tasksViewModel.updateTask(it, title, priority, scheduledAt, reminderAt, durationMinutes, deadlineAt, applyToSeries, urgency) }
                 taskBeingEdited = null
@@ -213,6 +237,7 @@ private fun MyDayApp(openQuickAddRequest: Int, tasksViewModel: TasksViewModel = 
         AddTaskDialog(
             onDismiss = { showAddDialog = false },
             allTasks = tasks,
+            defaultReminderMinutes = settings.defaultReminderMinutes,
             onAdd = { title, priority, scheduledAt, reminderAt, deadlineAt, recurrenceRule, durationMinutes, _, urgency ->
                 tasksViewModel.addTask(title, priority, scheduledAt, reminderAt, recurrenceRule, durationMinutes, deadlineAt, urgency)
                 showAddDialog = false
@@ -494,6 +519,7 @@ private fun TaskRow(
 private fun AddTaskDialog(
     initialTask: TaskEntity? = null,
     allTasks: List<TaskEntity>,
+    defaultReminderMinutes: Int = 15,
     onDismiss: () -> Unit,
     onAdd: (String, String, Long?, Long?, Long?, String, Int?, Boolean, String) -> Unit
 ) {
@@ -512,8 +538,12 @@ private fun AddTaskDialog(
         if (task.scheduledAtMillis != null && task.reminderAtMillis != null)
             ((task.scheduledAtMillis - task.reminderAtMillis) / 60_000L).toInt() else 0
     } ?: 0
-    var reminderEnabled by remember(initialTask?.id) { mutableStateOf(initialTask?.let { it.reminderAtMillis != null } ?: true) }
-    var reminderOffsetMinutes by remember(initialTask?.id) { mutableIntStateOf(initialReminderOffset) }
+    var reminderEnabled by remember(initialTask?.id, defaultReminderMinutes) {
+        mutableStateOf(initialTask?.let { it.reminderAtMillis != null } ?: (defaultReminderMinutes >= 0))
+    }
+    var reminderOffsetMinutes by remember(initialTask?.id, defaultReminderMinutes) {
+        mutableIntStateOf(if (initialTask == null) defaultReminderMinutes.coerceAtLeast(0) else initialReminderOffset)
+    }
     val context = LocalContext.current
     val nowMillis = System.currentTimeMillis()
     val scheduledInFuture = scheduledAt == null || scheduledAt!! > nowMillis || scheduledAt == initialTask?.scheduledAtMillis
@@ -725,16 +755,20 @@ private fun AddTaskDialog(
 }
 
 @Composable
-private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifier) {
+private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, modifier: Modifier = Modifier) {
     val zone = PlannerTime.zoneId()
     var selectedDate by remember { mutableStateOf(java.time.LocalDate.now(zone)) }
     var view by remember { mutableStateOf("Week") }
     val scheduled = tasks.filter { it.scheduledAtMillis != null }
     val dateFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault()) }
     val monthFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
-    val weekStart = selectedDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+    val firstDay = if (weekStartDay == WeekStartDay.SUNDAY) java.time.DayOfWeek.SUNDAY else java.time.DayOfWeek.MONDAY
+    val weekStart = selectedDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDay))
     val monthStart = selectedDate.withDayOfMonth(1)
-    val gridStart = monthStart.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+    val gridStart = monthStart.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDay))
+    val weekdayLabels = if (weekStartDay == WeekStartDay.SUNDAY)
+        listOf("S", "M", "T", "W", "T", "F", "S")
+    else listOf("M", "T", "W", "T", "F", "S", "S")
     val visibleDates = when (view) {
         "Day" -> listOf(selectedDate)
         "Week" -> (0L..6L).map { weekStart.plusDays(it) }
@@ -783,7 +817,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, modifier: Modifier = Modifie
         }
         if (view == "Month") {
             Row(Modifier.fillMaxWidth()) {
-                listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                weekdayLabels.forEach { day ->
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         Text(day, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
@@ -1082,11 +1116,19 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 }
 
 @Composable
-private fun SettingsScreen(modifier: Modifier = Modifier) {
+private fun SettingsScreen(
+    modifier: Modifier = Modifier,
+    settings: MyDaySettings,
+    onThemeChange: (ThemeMode) -> Unit,
+    onWeekStartChange: (WeekStartDay) -> Unit,
+    onReminderChange: (Int) -> Unit,
+    onOpenInsights: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
     var showRestoreConfirmation by remember { mutableStateOf(false) }
+    var activeSetting by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
             runCatching { MyDayBackupManager.exportTo(context, uri) }
@@ -1098,6 +1140,11 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         restoreUri = uri
         showRestoreConfirmation = uri != null
     }
+    val reminderLabel = when (settings.defaultReminderMinutes) {
+        -1 -> "Off by default"
+        0 -> "At scheduled time"
+        else -> "${settings.defaultReminderMinutes} minutes before"
+    }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
@@ -1105,14 +1152,22 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
             Text("A calmer way to plan, built around you.", color = Muted, fontSize = 14.sp)
         }
         SettingsGroup("YOUR EXPERIENCE") {
-            SettingsRow(Icons.Default.Palette, "Appearance", "Light theme · Navy, white and lime")
-            SettingsRow(Icons.Default.NotificationsActive, "Reminders", "Choose a reminder when creating each task")
-            SettingsRow(Icons.Default.CalendarMonth, "Calendar", "Week begins on Monday")
+            SettingsRow(Icons.Default.Palette, "Appearance", when (settings.themeMode) {
+                ThemeMode.SYSTEM -> "Follow device theme"
+                ThemeMode.LIGHT -> "Light theme"
+                ThemeMode.DARK -> "Dark theme"
+            }) { activeSetting = "Appearance" }
+            SettingsRow(Icons.Default.NotificationsActive, "Reminders", reminderLabel) { activeSetting = "Reminders" }
+            SettingsRow(Icons.Default.CalendarMonth, "Calendar", "Week begins on ${settings.weekStartDay.name.lowercase().replaceFirstChar { it.uppercase() }}") {
+                activeSetting = "Calendar"
+            }
         }
         SettingsGroup("YOUR PRODUCTIVITY") {
-            SettingsRow(Icons.Default.Timer, "Focus sessions", "Pomodoro timer · 25 / 5 / 15 minutes")
-            SettingsRow(Icons.Default.Insights, "Time tracking", "Track time spent on individual tasks")
-            SettingsRow(Icons.Default.OfflineBolt, "Offline-first", "Your tasks are stored on this device")
+            SettingsRow(Icons.Default.Timer, "Focus sessions", "Configure focus and break durations") {
+                context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java))
+            }
+            SettingsRow(Icons.Default.Insights, "Time tracking", "Review tracked time and task sessions") { activeSetting = "Time tracking" }
+            SettingsRow(Icons.Default.OfflineBolt, "Offline-first", "Your tasks are stored on this device") { activeSetting = "Offline-first" }
         }
         SettingsGroup("BACKUP & RESTORE") {
             Text("Export a portable copy of tasks and tracked time, or restore a previous MyDay backup. Files stay under your control; no cloud account is required.",
@@ -1147,12 +1202,97 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         }
         SettingsGroup("ABOUT") {
-            SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose")
-            SettingsRow(Icons.Default.Info, "Version", "${BuildConfig.VERSION_NAME} · Early access")
+            SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose") { activeSetting = "MyDay" }
+            SettingsRow(Icons.Default.Info, "Version", "${BuildConfig.VERSION_NAME} · Build ${BuildConfig.VERSION_CODE}") { activeSetting = "Version" }
         }
         Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
+
+    when (activeSetting) {
+        "Appearance" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("Appearance") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ThemeMode.values().forEach { mode ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = settings.themeMode == mode, onClick = { onThemeChange(mode) })
+                            Text(when (mode) {
+                                ThemeMode.SYSTEM -> "System default"
+                                ThemeMode.LIGHT -> "Light"
+                                ThemeMode.DARK -> "Dark"
+                            }, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Done") } }
+        )
+        "Reminders" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("Default task reminder") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("New tasks will use this reminder lead time when you enable a reminder. You can still change it for each task.", color = Muted, fontSize = 12.sp)
+                    listOf(-1, 0, 5, 10, 15).forEach { minutes ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = settings.defaultReminderMinutes == minutes, onClick = { onReminderChange(minutes) })
+                            Text(when (minutes) {
+                                -1 -> "Off"
+                                0 -> "At scheduled time"
+                                else -> "$minutes minutes before"
+                            }, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Done") } }
+        )
+        "Calendar" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("Calendar week starts on") },
+            text = {
+                Column {
+                    WeekStartDay.values().forEach { day ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = settings.weekStartDay == day, onClick = { onWeekStartChange(day) })
+                            Text(if (day == WeekStartDay.MONDAY) "Monday" else "Sunday")
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Done") } }
+        )
+        "Time tracking" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("Time tracking") },
+            text = { Text("Track time against individual tasks using Start timer, Pause and Stop. Recorded sessions remain stored locally and are included in Insights. Opening Insights does not change or delete any tracking records.") },
+            confirmButton = {
+                TextButton(onClick = { activeSetting = null; onOpenInsights() }) { Text("View Insights") }
+            },
+            dismissButton = { TextButton(onClick = { activeSetting = null }) { Text("Close") } }
+        )
+        "Offline-first" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("Offline-first storage") },
+            text = { Text("MyDay stores tasks and tracked-time records in the on-device database. Core task planning and time tracking are available without an internet connection. Voice recognition may depend on the speech service and network availability. Back up your data regularly using Backup & Restore.") },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Got it") } }
+        )
+        "MyDay" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("MyDay") },
+            text = { Text("A personal productivity planner built to help you plan with purpose, stay focused and understand how you spend your time.") },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Close") } }
+        )
+        "Version" -> AlertDialog(
+            onDismissRequest = { activeSetting = null },
+            title = { Text("MyDay version") },
+            text = { Text("Version ${BuildConfig.VERSION_NAME}\nBuild ${BuildConfig.VERSION_CODE}\nApplication ID: ${BuildConfig.APPLICATION_ID}") },
+            confirmButton = { TextButton(onClick = { activeSetting = null }) { Text("Close") } }
+        )
+    }
+
     if (showRestoreConfirmation) {
         AlertDialog(
             onDismissRequest = { showRestoreConfirmation = false; restoreUri = null },
@@ -1176,6 +1316,7 @@ private fun SettingsScreen(modifier: Modifier = Modifier) {
         )
     }
 }
+
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -1188,8 +1329,17 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun SettingsRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun SettingsRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 9.dp)
+            .then(Modifier.clickable(onClick = onClick)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Surface(shape = RoundedCornerShape(11.dp), color = MyDayColors.SoftNeutralAlt, modifier = Modifier.size(37.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(19.dp)) }
         }
