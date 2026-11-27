@@ -393,6 +393,7 @@ private fun TasksScreen(
             }
         )
     }
+    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     val categoryFilteredTasks = if (selectedCategoryId == null) filteredTasks else filteredTasks.filter { it.categoryId == selectedCategoryId }
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(categoryFilteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
@@ -400,7 +401,6 @@ private fun TasksScreen(
         Text("Tasks", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
         Text("Everything you need to move forward.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         var showCategoryManager by remember { mutableStateOf(false) }
-        var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("CATEGORIES", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             TextButton(onClick = { showCategoryManager = true }) { Text("Manage") }
@@ -455,7 +455,10 @@ private fun TasksScreen(
                         }
                     }
                     items(unscheduledTasks, key = { it.id }) { task ->
-                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking, onEdit)
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking, onEdit)
+                            CategoryAssignmentRow(task, categories, onSetCategory)
+                        }
                     }
                 }
                 if (scheduledTasks.isNotEmpty()) {
@@ -463,13 +466,88 @@ private fun TasksScreen(
                         Text("SCHEDULED · ${scheduledTasks.size}", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     items(scheduledTasks, key = { it.id }) { task ->
-                        TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
+                            CategoryAssignmentRow(task, categories, onSetCategory)
+                        }
                     }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun CategoryAssignmentRow(task: TaskEntity, categories: List<CategoryEntity>, onSetCategory: (Long, Long?) -> Unit) {
+    var expanded by remember(task.id) { mutableStateOf(false) }
+    val selected = categories.firstOrNull { it.id == task.categoryId }
+    Box {
+        TextButton(onClick = { expanded = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
+            Text(selected?.name ?: "Inbox · Uncategorized", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = "Change category", modifier = Modifier.size(15.dp))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("Inbox · Uncategorized") }, onClick = { onSetCategory(task.id, null); expanded = false })
+            categories.forEach { category ->
+                DropdownMenuItem(text = { Text(category.name) }, onClick = { onSetCategory(task.id, category.id); expanded = false })
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryManagerDialog(
+    categories: List<CategoryEntity>,
+    onCreate: (String, String) -> Unit,
+    onRename: (Long, String, String) -> Unit,
+    onDelete: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedId by remember { mutableStateOf<Long?>(null) }
+    val selected = categories.firstOrNull { it.id == selectedId }
+    var name by remember(selectedId) { mutableStateOf(selected?.name.orEmpty()) }
+    var color by remember(selectedId) { mutableStateOf(selected?.colorHex ?: "#5B8DEF") }
+    var creating by remember { mutableStateOf(false) }
+    val colors = listOf("#5B8DEF", "#7C6EE6", "#E58A4E", "#38A88A", "#C49A36", "#B36BC7", "#D65D73", "#607D8B")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage categories") },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                categories.forEach { category ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = selectedId == category.id, onClick = { selectedId = category.id; creating = false })
+                        Text(category.name, modifier = Modifier.weight(1f))
+                        if (!category.isDefault) Text("Custom", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                OutlinedButton(onClick = { selectedId = null; creating = true; name = ""; color = colors.first() }, modifier = Modifier.fillMaxWidth()) { Text("+ Create category") }
+                if (creating || selected != null) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Category name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Text("Colour", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        colors.forEach { swatch ->
+                            Surface(onClick = { color = swatch }, modifier = Modifier.size(27.dp), color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(swatch)), shape = RoundedCornerShape(50), border = if (color == swatch) androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.onSurface) else null) {}
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                if (selected != null && !selected.isDefault) TextButton(onClick = { onDelete(selected.id); selectedId = null }) { Text("Delete") }
+                TextButton(onClick = {
+                    if (name.isNotBlank()) {
+                        if (creating) onCreate(name, color) else selected?.takeIf { !it.isDefault }?.let { onRename(it.id, name, color) }
+                    }
+                    onDismiss()
+                }) { Text(if (creating) "Create" else "Save") }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
 @Composable
 private fun TaskRow(
     task: TaskEntity,
