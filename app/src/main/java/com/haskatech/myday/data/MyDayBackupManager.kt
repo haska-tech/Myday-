@@ -37,7 +37,7 @@ object MyDayBackupManager {
             "Backup contains invalid task data."
         }
         val taskIds = tasks.map { it.id }.toSet()
-        if (categories.isNotEmpty()) {
+        if (version >= 2) {
             require(categories.map { it.id }.toSet().size == categories.size && categories.all { it.id > 0 && it.name.isNotBlank() })
             require(tasks.all { it.categoryId == null || categories.any { category -> category.id == it.categoryId } }) {
                 "Backup contains tasks assigned to missing categories."
