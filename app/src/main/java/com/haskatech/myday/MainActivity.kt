@@ -194,7 +194,7 @@ private fun MyDayApp(
             0 -> TodayScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.startTracking(it) }, { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) },
-                onOpenTasks = { filter -> tasksInitialFilter = filter; tab = 1 }, modifier = Modifier.padding(padding))
+                onOpenTasks = { filter -> tasksInitialFilter = filter; tab = 1 }, onEditTask = { taskBeingEdited = it }, modifier = Modifier.padding(padding))
             1 -> TasksScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
@@ -267,7 +267,7 @@ private fun TodayScreen(
     tasks: List<TaskEntity>, tracking: TimeTrackingSessionEntity?, nowMillis: Long,
     onToggle: (TaskEntity, Boolean) -> Unit, onTopPriority: (TaskEntity, Boolean) -> Unit,
     onStartTracking: (TaskEntity) -> Unit, onPauseTracking: (TaskEntity) -> Unit, onStopTracking: (TaskEntity) -> Unit,
-    onOpenTasks: (String) -> Unit, modifier: Modifier = Modifier
+    onOpenTasks: (String) -> Unit, onEditTask: (TaskEntity) -> Unit, modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val today = java.time.LocalDate.now(PlannerTime.zoneId())
@@ -319,6 +319,7 @@ private fun TodayScreen(
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp)) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) { Text(task.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold); Text(if (task in overdue) "OVERDUE" else "DUE SOON", color = MaterialTheme.colorScheme.error, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                            TextButton(onClick = { onEditTask(task) }) { Text("Review / reschedule") }
                             TextButton(onClick = { onToggle(task, true) }) { Text("Complete") }
                         }
                     }
