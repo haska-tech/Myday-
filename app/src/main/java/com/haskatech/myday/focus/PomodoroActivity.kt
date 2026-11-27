@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import com.haskatech.myday.MyDayColors
 import com.haskatech.myday.MyDayTheme
 import com.haskatech.myday.settings.SettingsRepository
 import com.haskatech.myday.settings.MyDaySettings
@@ -96,15 +95,15 @@ private fun PomodoroScreen() {
                 IconButton(onClick = { (context as? android.app.Activity)?.finish() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                 }
-                Text("MYDAY", color = MyDayColors.Navy, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,
+                Text("MYDAY", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,
                     letterSpacing = 1.sp, modifier = Modifier.weight(1f))
                 Text("POMODORO", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
-            Text("Stay focused.", color = MyDayColors.Navy, style = MaterialTheme.typography.headlineLarge)
-            Text("One thing at a time. Give it your best.", color = MyDayColors.Muted, fontSize = 13.sp)
+            Text("Stay focused.", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
+            Text("One thing at a time. Give it your best.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Surface(color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f), shape = RoundedCornerShape(50)) {
-                Text(phaseLabel, color = MyDayColors.Navy, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                Text(phaseLabel, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
             }
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(26.dp),
@@ -116,7 +115,7 @@ private fun PomodoroScreen() {
                     BoxTimer(progress = progress, time = "%02d:%02d".format(minutes, seconds), diameter = 190.dp)
                     Spacer(Modifier.height(18.dp))
                     Text(timer.completedFocusSessions.toString() + " focus sessions completed",
-                        color = MyDayColors.Muted, fontSize = 13.sp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     Spacer(Modifier.height(20.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
@@ -125,7 +124,7 @@ private fun PomodoroScreen() {
                                 else PomodoroTimerManager.start(context)
                                 timer = PomodoroTimerManager.snapshot(context)
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = MyDayColors.Navy)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         , modifier = Modifier.weight(1f)) { Text(if (timer.isRunning) "Pause session" else "Start focus") }
                         OutlinedButton(onClick = {
                             PomodoroTimerManager.reset(context)
@@ -134,14 +133,14 @@ private fun PomodoroScreen() {
                     }
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(22.dp),
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(22.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("CUSTOMISE YOUR TIMER", color = MyDayColors.Muted, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.sp)
-                    Text("Timer lengths", color = MyDayColors.Navy, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("CUSTOMISE YOUR TIMER", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.sp)
+                    Text("Timer lengths", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     DurationControl("Focus", timer.focusMinutes, !timer.isRunning) {
                         PomodoroTimerManager.setDuration(context, "FOCUS", it)
                         timer = PomodoroTimerManager.snapshot(context)
@@ -156,7 +155,7 @@ private fun PomodoroScreen() {
                     }
                     Text(
                         "After four focus sessions, MyDay schedules a long break. The timer continues when you leave the app.",
-                        color = MyDayColors.Muted, fontSize = 12.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp
                     )
                 }
             }
@@ -170,22 +169,22 @@ private fun BoxTimer(progress: Float, time: String, diameter: androidx.compose.u
         CircularProgressIndicator(
             progress = { progress },
             modifier = Modifier.size(diameter),
-            color = MyDayColors.Lime,
-            trackColor = MyDayColors.Paper,
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.background,
             strokeWidth = 10.dp
         )
-        Text(time, color = MyDayColors.Navy, fontSize = 42.sp, fontWeight = FontWeight.Bold)
+        Text(time, color = MaterialTheme.colorScheme.onSurface, fontSize = 42.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun DurationControl(label: String, minutes: Int, enabled: Boolean, onChange: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = MyDayColors.Navy, modifier = Modifier.weight(1f))
+        Text(label, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
         OutlinedButton(enabled = enabled && minutes > 1, onClick = { onChange(minutes - 1) }) {
             Text("−")
         }
-        Text("$minutes min", color = MyDayColors.Navy, fontWeight = FontWeight.SemiBold,
+        Text("$minutes min", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 10.dp))
         OutlinedButton(enabled = enabled && minutes < 120, onClick = { onChange(minutes + 1) }) {
             Text("+")
