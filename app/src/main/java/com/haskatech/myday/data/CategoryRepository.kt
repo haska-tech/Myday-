@@ -27,14 +27,12 @@ class CategoryRepository(private val dao: CategoryDao) {
     suspend fun rename(id: Long, name: String, colorHex: String, iconKey: String): Boolean {
         val clean = name.trim()
         if (clean.isEmpty() || clean.length > 32 || !colorHex.matches(Regex("^#[0-9A-Fa-f]{6}$"))) return false
-        val category = dao.getById(id) ?: return false
-        if (category.isDefault) return false
+        if (dao.getById(id) == null) return false
         return dao.update(id, clean, colorHex.uppercase(), iconKey) == 1
     }
 
     suspend fun delete(id: Long): Boolean {
-        val category = dao.getById(id) ?: return false
-        if (category.isDefault) return false
+        if (dao.getById(id) == null) return false
         return dao.deleteAndUncategorize(id)
     }
 }
