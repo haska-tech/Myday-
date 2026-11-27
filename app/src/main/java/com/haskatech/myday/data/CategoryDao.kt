@@ -36,6 +36,9 @@ interface CategoryDao {
         return deleteCustom(id) == 1
     }
 
+    @Query("DELETE FROM categories")
+    suspend fun clearAll()
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): CategoryEntity?
 }
