@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.haskatech.myday.data.MyDayDatabase
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.CategoryEntity
+import com.haskatech.myday.data.CategoryRepository
 import com.haskatech.myday.data.TaskRepository
 import com.haskatech.myday.data.TaskTimeTrackingRepository
 import com.haskatech.myday.reminders.ReminderScheduler
@@ -18,6 +20,8 @@ import kotlinx.coroutines.launch
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MyDayDatabase.getDatabase(application)
     private val repository = TaskRepository(database.taskDao())
+    private val categoryRepository = CategoryRepository(database.categoryDao())
+    val categories = categoryRepository.categories
     private val timeTrackingRepository = TaskTimeTrackingRepository(database)
 
     init {
@@ -96,6 +100,25 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (repository.updatePlannedDuration(taskId, minutes)) MyDayWidgetProvider.requestRefresh(getApplication())
         }
+    }
+
+    fun setTaskCategory(taskId: Long, categoryId: Long?) {
+        viewModelScope.launch {
+            database.taskDao().setCategory(taskId, categoryId)
+            MyDayWidgetProvider.requestRefresh(getApplication())
+        }
+    }
+
+    fun createCategory(name: String, colorHex: String, iconKey: String = "folder") {
+        viewModelScope.launch { categoryRepository.create(name, colorHex, iconKey) }
+    }
+
+    fun renameCategory(id: Long, name: String, colorHex: String, iconKey: String = "folder") {
+        viewModelScope.launch { categoryRepository.rename(id, name, colorHex, iconKey) }
+    }
+
+    fun deleteCategory(id: Long) {
+        viewModelScope.launch { categoryRepository.delete(id) }
     }
 
     fun startTracking(task: TaskEntity) { viewModelScope.launch { timeTrackingRepository.start(task.id) } }
