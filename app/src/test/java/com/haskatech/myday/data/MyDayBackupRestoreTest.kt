@@ -59,4 +59,18 @@ class MyDayBackupRestoreTest {
         assertNull(database.taskDao().getTaskById(41L))
     }
 
+    @Test fun restorePreservesCategoriesAndTaskCategoryLinks() = runBlocking {
+        val category = CategoryEntity(id = 12, name = "Research", colorHex = "#123456", iconKey = "school")
+        database.categoryDao().insert(category)
+        val task = TaskEntity(id = 51, title = "Read paper", categoryId = 12)
+        val snapshot = MyDayBackupManager.decode(
+            MyDayBackupManager.encode(listOf(task), emptyList(), null, listOf(category))
+        )
+
+        MyDayBackupManager.restoreRecords(database, snapshot)
+
+        assertEquals(category, database.categoryDao().getById(12))
+        assertEquals(12L, database.taskDao().getTaskById(51)?.categoryId)
+    }
+
 }
