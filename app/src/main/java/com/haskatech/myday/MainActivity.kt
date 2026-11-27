@@ -913,6 +913,7 @@ private fun WeeklyTimetable(
 ) {
     val horizontalState = rememberScrollState()
     val verticalState = rememberScrollState()
+    LaunchedEffect(Unit) { verticalState.scrollTo(6 * 72) }
     val today = java.time.LocalDate.now(zone)
     val dayFormatter = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
