@@ -49,7 +49,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
     )
 
-    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null, deadlineAtMillis: Long? = null, urgency: String = "Normal") {
+    fun addTask(title: String, priority: String = "Normal", scheduledAtMillis: Long? = null, reminderAtMillis: Long? = null, recurrenceRule: String = "None", plannedDurationMinutes: Int? = null, deadlineAtMillis: Long? = null, urgency: String = "Normal", categoryId: Long? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (plannedDurationMinutes != null && plannedDurationMinutes <= 0) return@launch
@@ -57,7 +57,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             if (reminderAtMillis != null && (scheduledAtMillis == null || reminderAtMillis <= now || reminderAtMillis > scheduledAtMillis)) return@launch
             if (deadlineAtMillis != null && (deadlineAtMillis <= now || (scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis))) return@launch
 
-            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes, deadlineAtMillis, urgency)
+            val createdTasks = repository.addTask(title, priority, scheduledAtMillis, reminderAtMillis, recurrenceRule, plannedDurationMinutes, deadlineAtMillis, urgency, categoryId)
             createdTasks.orEmpty().forEach { task ->
                 val reminder = task.reminderAtMillis
                 if (reminder != null && reminder > System.currentTimeMillis()) {
