@@ -15,7 +15,8 @@ class TaskRepository(private val taskDao: TaskDao) {
         recurrenceRule: String = "None",
         plannedDurationMinutes: Int? = null,
         deadlineAtMillis: Long? = null,
-        urgency: String = "Normal"
+        urgency: String = "Normal",
+        categoryId: Long? = null
     ): List<TaskEntity>? {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return null
@@ -32,7 +33,8 @@ class TaskRepository(private val taskDao: TaskDao) {
             recurrenceSeriesId = seriesId,
             plannedDurationMinutes = plannedDurationMinutes,
             deadlineAtMillis = deadlineAtMillis,
-            urgency = urgency
+            urgency = urgency,
+            categoryId = categoryId
         )
         val deadlineOffset = if (scheduledAtMillis != null && deadlineAtMillis != null) deadlineAtMillis - scheduledAtMillis else null
         val occurrences = if (seriesId != null && scheduledAtMillis != null) {
