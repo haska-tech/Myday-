@@ -1,10 +1,8 @@
 name: Android build
 
+# Manual-only while source changes are being reviewed.
+# Run this workflow only after an explicit build-stage approval.
 on:
-  push:
-    branches: [main, development]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
