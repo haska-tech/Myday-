@@ -1,8 +1,10 @@
 name: Android build
 
-# Manual-only while source changes are being reviewed.
-# Run this workflow only after an explicit build-stage approval.
+# Builds are opt-in: only an explicitly marked development commit builds an APK.
+# Ordinary development commits do not compile or package the app.
 on:
+  push:
+    branches: [development]
   workflow_dispatch:
 
 permissions:
@@ -10,6 +12,7 @@ permissions:
 
 jobs:
   assemble:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
