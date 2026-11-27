@@ -68,7 +68,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?, applyToSeries: Boolean = false, urgency: String = task.urgency) {
+    fun updateTask(task: TaskEntity, title: String, priority: String, scheduledAtMillis: Long?, reminderAtMillis: Long?, plannedDurationMinutes: Int?, deadlineAtMillis: Long?, applyToSeries: Boolean = false, urgency: String = task.urgency, categoryId: Long? = task.categoryId) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             if (!com.haskatech.myday.data.TaskEditRules.isValid(
@@ -77,6 +77,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
                 ) || (deadlineAtMillis != null && scheduledAtMillis != null && deadlineAtMillis < scheduledAtMillis)) return@launch
             val updatedTasks = repository.updateTask(task, title, priority, scheduledAtMillis, reminderAtMillis, plannedDurationMinutes, deadlineAtMillis, applyToSeries, urgency)
             updatedTasks.forEach { updated ->
+                database.taskDao().setCategory(updated.id, categoryId)
                 ReminderScheduler.cancel(getApplication(), updated.id)
                 updated.reminderAtMillis?.takeIf { it > System.currentTimeMillis() }?.let {
                     ReminderScheduler.schedule(getApplication(), updated.id, updated.title, it)
