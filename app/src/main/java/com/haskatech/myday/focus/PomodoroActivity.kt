@@ -43,12 +43,17 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.haskatech.myday.MyDayColors
 import com.haskatech.myday.MyDayTheme
+import com.haskatech.myday.settings.SettingsRepository
+import com.haskatech.myday.settings.MyDaySettings
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class PomodoroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyDayTheme {
+            val settingsRepository = remember { SettingsRepository(applicationContext) }
+            val settings by settingsRepository.settings.collectAsStateWithLifecycle(initialValue = MyDaySettings())
+            MyDayTheme(themeMode = settings.themeMode) {
                 PomodoroScreen()
             }
         }
@@ -81,7 +86,7 @@ private fun PomodoroScreen() {
         "LONG_BREAK" -> "LONG BREAK"
         else -> "FOCUS SESSION"
     }
-    Surface(Modifier.fillMaxSize(), color = MyDayColors.Paper) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -89,20 +94,20 @@ private fun PomodoroScreen() {
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { (context as? android.app.Activity)?.finish() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MyDayColors.Navy)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 Text("MYDAY", color = MyDayColors.Navy, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,
                     letterSpacing = 1.sp, modifier = Modifier.weight(1f))
-                Text("POMODORO", color = MyDayColors.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("POMODORO", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
             Text("Stay focused.", color = MyDayColors.Navy, style = MaterialTheme.typography.headlineLarge)
             Text("One thing at a time. Give it your best.", color = MyDayColors.Muted, fontSize = 13.sp)
-            Surface(color = MyDayColors.Lime.copy(alpha = 0.24f), shape = RoundedCornerShape(50)) {
+            Surface(color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f), shape = RoundedCornerShape(50)) {
                 Text(phaseLabel, color = MyDayColors.Navy, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
             }
-            Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(26.dp),
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(26.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(vertical = 22.dp, horizontal = 16.dp),
