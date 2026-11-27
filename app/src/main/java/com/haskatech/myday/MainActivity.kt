@@ -120,7 +120,7 @@ private fun MyDayApp(
         }
     }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
-    val categories by tasksViewModel.categories.collectAsStateWithLifecycle()
+    val categories by tasksViewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
     val activeTracking by tasksViewModel.activeTracking.collectAsStateWithLifecycle()
     val timeTrackingEntries by tasksViewModel.timeTrackingEntries.collectAsStateWithLifecycle()
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
