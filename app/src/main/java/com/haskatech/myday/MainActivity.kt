@@ -273,7 +273,7 @@ private fun TodayScreen(
     val completedToday = tasks.count { it.isCompleted && (it.scheduledAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true || it.deadlineAtMillis?.let { t -> PlannerTime.localDateAt(t) == today } == true) }
     val committed = todayTasks.size + completedToday
     val percent = if (committed == 0) 0 else completedToday * 100 / committed
-    val overdue = tasks.filter { !it.isCompleted && it.deadlineAtMillis != null && PlannerTime.localDateAt(it.deadlineAtMillis) < today }
+    val overdue = tasks.filter { !it.isCompleted && it.deadlineAtMillis != null && it.deadlineAtMillis < nowMillis }
     val dueSoon = tasks.filter { !it.isCompleted && it.deadlineAtMillis?.let { t -> val d = PlannerTime.localDateAt(t); d >= today && d <= today.plusDays(3) } == true }
     val topTasks = tasks.filter { it.isTopPriority && !it.isCompleted }
     val nextTask = tasks.filter { !it.isCompleted && it.scheduledAtMillis != null && it.scheduledAtMillis!! >= nowMillis }.minByOrNull { it.scheduledAtMillis!! }
@@ -394,7 +394,12 @@ private fun TasksScreen(
         )
     }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
-    val categoryFilteredTasks = if (selectedCategoryId == null) filteredTasks else filteredTasks.filter { it.categoryId == selectedCategoryId }
+    var inboxOnly by remember { mutableStateOf(false) }
+    val categoryFilteredTasks = when {
+        inboxOnly -> filteredTasks.filter { it.categoryId == null }
+        selectedCategoryId != null -> filteredTasks.filter { it.categoryId == selectedCategoryId }
+        else -> filteredTasks
+    }
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(categoryFilteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
@@ -406,9 +411,10 @@ private fun TasksScreen(
             TextButton(onClick = { showCategoryManager = true }) { Text("Manage") }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(selected = selectedCategoryId == null, onClick = { selectedCategoryId = null }, label = { Text("Inbox / All") })
+            FilterChip(selected = selectedCategoryId == null && !inboxOnly, onClick = { selectedCategoryId = null; inboxOnly = false }, label = { Text("All") })
+            FilterChip(selected = inboxOnly, onClick = { selectedCategoryId = null; inboxOnly = true }, label = { Text("Inbox") })
             categories.forEach { category ->
-                FilterChip(selected = selectedCategoryId == category.id, onClick = { selectedCategoryId = category.id }, label = { Text(category.name) })
+                FilterChip(selected = selectedCategoryId == category.id, onClick = { selectedCategoryId = category.id; inboxOnly = false }, label = { Text(category.name) })
             }
         }
         if (showCategoryManager) CategoryManagerDialog(categories, onCreateCategory, onRenameCategory, onDeleteCategory) { showCategoryManager = false }
@@ -422,6 +428,11 @@ private fun TasksScreen(
                         val count = when (option) {
                             "Active" -> tasks.count { !it.isCompleted }
                             "Completed" -> tasks.count { it.isCompleted }
+                            "Overdue" -> tasks.count { !it.isCompleted && it.deadlineAtMillis != null && it.deadlineAtMillis < nowMillis }
+                            "Due soon" -> {
+                                val today = java.time.LocalDate.now(PlannerTime.zoneId())
+                                tasks.count { !it.isCompleted && it.deadlineAtMillis?.let { millis -> val d = PlannerTime.localDateAt(millis); d >= today && d <= today.plusDays(3) } == true }
+                            }
                             else -> tasks.size
                         }
                         Text("$option · $count")
