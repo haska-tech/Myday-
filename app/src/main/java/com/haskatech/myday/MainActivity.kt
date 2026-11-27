@@ -179,7 +179,7 @@ private fun MyDayApp(
             FloatingActionButton(
                 onClick = { showAddDialog = true },
                 containerColor = Lime,
-                contentColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
                 shape = RoundedCornerShape(18.dp),
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 5.dp, pressedElevation = 2.dp)
             ) {
@@ -282,7 +282,7 @@ private fun TodayScreen(
         }
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
@@ -293,7 +293,7 @@ private fun TodayScreen(
                         Text("Start a focused work session.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                     Button(onClick = { context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSecondary)) {
                         Text("Focus")
                     }
                 }
@@ -437,7 +437,7 @@ private fun TaskRow(
     } else 0L
     Card(
         Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -556,7 +556,7 @@ private fun AddTaskDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(26.dp),
-        containerColor = MyDayColors.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -744,7 +744,7 @@ private fun AddTaskDialog(
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
                 onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries, urgency)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSecondary)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
             }
         },
@@ -871,7 +871,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     entries.forEach { (date, task) ->
-                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             shape = RoundedCornerShape(17.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                             Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.width(76.dp)) {
@@ -1058,7 +1058,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
             AnalyticsMetricCard("Tracked time", TimeTrackingRules.formatDuration(report.trackedMillis), Modifier.weight(1f))
             AnalyticsMetricCard("Overdue active", report.overdueActive.toString(), Modifier.weight(1f))
         }
-        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Daily focus trend", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 Text("Tracked time per local calendar day", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
@@ -1077,7 +1077,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
                 }
             }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("Task outcomes", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 Text("${report.completedFromCohort} of ${report.tasksCreated} tasks created in this period are currently complete.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -1090,7 +1090,7 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
 }
 @Composable
 private fun AnalyticsMetricCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(17.dp)) {
+    Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(17.dp)) {
         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
             Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -1100,7 +1100,7 @@ private fun AnalyticsMetricCard(label: String, value: String, modifier: Modifier
 
 @Composable
 private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, message: String) {
-    Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MyDayColors.White),
+    Card(Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -1319,7 +1319,7 @@ private fun SettingsScreen(
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(18.dp),
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(18.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(content = content, modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp))
         }
