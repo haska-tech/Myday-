@@ -6,6 +6,7 @@ class CategoryRepository(private val dao: CategoryDao) {
     val categories: Flow<List<CategoryEntity>> = dao.observeCategories()
 
     suspend fun ensureDefaults() {
+        if (dao.getAll().isNotEmpty()) return
         val defaults = listOf(
             CategoryEntity(id = 1, name = "Personal", colorHex = "#5B8DEF", isDefault = true),
             CategoryEntity(id = 2, name = "Work", colorHex = "#7C6EE6", isDefault = true),
@@ -28,7 +29,7 @@ class CategoryRepository(private val dao: CategoryDao) {
         val clean = CategoryRules.cleanName(name) ?: return false
         if (!CategoryRules.isValidColor(colorHex)) return false
         if (dao.getById(id) == null) return false
-        return dao.update(id, clean, colorHex.uppercase(), iconKey) == 1
+        return runCatching { dao.update(id, clean, colorHex.uppercase(), iconKey) == 1 }.getOrDefault(false)
     }
 
     suspend fun delete(id: Long): Boolean {
