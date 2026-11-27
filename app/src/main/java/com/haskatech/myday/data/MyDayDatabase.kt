@@ -7,9 +7,10 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [TaskEntity::class, TimeTrackingSessionEntity::class, TimeTrackingEntryEntity::class], version = 11, exportSchema = false)
+@Database(entities = [TaskEntity::class, CategoryEntity::class, TimeTrackingSessionEntity::class, TimeTrackingEntryEntity::class], version = 12, exportSchema = false)
 abstract class MyDayDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
+    abstract fun categoryDao(): CategoryDao
     abstract fun timeTrackingDao(): TimeTrackingDao
 
     companion object {
@@ -83,6 +84,38 @@ abstract class MyDayDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE tasks ADD COLUMN categoryId INTEGER")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        colorHex TEXT NOT NULL,
+                        iconKey TEXT NOT NULL,
+                        isDefault INTEGER NOT NULL DEFAULT 0,
+                        createdAtMillis INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_categories_name ON categories(name)")
+                val now = System.currentTimeMillis()
+                val defaults = listOf(
+                    "Personal" to "#5B8DEF",
+                    "Work" to "#7C6EE6",
+                    "Family" to "#E58A4E",
+                    "Health" to "#38A88A",
+                    "Finance" to "#C49A36",
+                    "Education" to "#B36BC7"
+                )
+                defaults.forEachIndexed { index, item ->
+                    database.execSQL(
+                        "INSERT INTO categories(id, name, colorHex, iconKey, isDefault, createdAtMillis) VALUES(?, ?, ?, ?, 1, ?)",
+                        arrayOf(index + 1, item.first, item.second, "folder", now)
+                    )
+                }
+            }
+        }
+
         @Volatile private var INSTANCE: MyDayDatabase? = null
 
         fun getDatabase(context: Context): MyDayDatabase =
@@ -94,7 +127,7 @@ abstract class MyDayDatabase : RoomDatabase() {
                 ).addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12
                 ).build().also { INSTANCE = it }
             }
     }
