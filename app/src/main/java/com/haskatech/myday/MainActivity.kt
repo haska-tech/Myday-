@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.haskatech.myday.data.TaskEntity
+import com.haskatech.myday.data.CategoryEntity
 import com.haskatech.myday.data.MyDayBackupManager
 import com.haskatech.myday.data.TaskConflictRules
 import com.haskatech.myday.data.SmartScheduleRules
@@ -119,6 +120,7 @@ private fun MyDayApp(
         }
     }
     val tasks by tasksViewModel.tasks.collectAsStateWithLifecycle()
+    val categories by tasksViewModel.categories.collectAsStateWithLifecycle()
     val activeTracking by tasksViewModel.activeTracking.collectAsStateWithLifecycle()
     val timeTrackingEntries by tasksViewModel.timeTrackingEntries.collectAsStateWithLifecycle()
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -196,7 +198,11 @@ private fun MyDayApp(
             1 -> TasksScreen(tasks, activeTracking, nowMillis,
                 { task, done -> tasksViewModel.setCompleted(task, done) }, toggleTop,
                 { tasksViewModel.deleteTask(it) }, { taskBeingEdited = it }, { tasksViewModel.startTracking(it) },
-                { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding), initialFilter = tasksInitialFilter)
+                { tasksViewModel.pauseTracking(it) }, { tasksViewModel.stopTracking(it) }, Modifier.padding(padding), initialFilter = tasksInitialFilter,
+                categories = categories, onSetCategory = { id, categoryId -> tasksViewModel.setTaskCategory(id, categoryId) },
+                onCreateCategory = { name, color -> tasksViewModel.createCategory(name, color) },
+                onRenameCategory = { id, name, color -> tasksViewModel.renameCategory(id, name, color) },
+                onDeleteCategory = { id -> tasksViewModel.deleteCategory(id) })
             2 -> CalendarScreen(tasks, settings.weekStartDay, Modifier.padding(padding))
             3 -> SmartPlanScreen(
                 tasks = tasks,
@@ -362,7 +368,12 @@ private fun TasksScreen(
     onPauseTracking: (TaskEntity) -> Unit,
     onStopTracking: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier,
-    initialFilter: String = "All"
+    initialFilter: String = "All",
+    categories: List<CategoryEntity> = emptyList(),
+    onSetCategory: (Long, Long?) -> Unit = { _, _ -> },
+    onCreateCategory: (String, String) -> Unit = { _, _ -> },
+    onRenameCategory: (Long, String, String) -> Unit = { _, _, _ -> },
+    onDeleteCategory: (Long) -> Unit = {}
 ) {
     var taskFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
     val filteredTasks = when (taskFilter) {
@@ -382,11 +393,25 @@ private fun TasksScreen(
             }
         )
     }
-    val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
+    val categoryFilteredTasks = if (selectedCategoryId == null) filteredTasks else filteredTasks.filter { it.categoryId == selectedCategoryId }
+    val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(categoryFilteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
         Text("YOUR WORKSPACE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
         Text("Tasks", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
         Text("Everything you need to move forward.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        var showCategoryManager by remember { mutableStateOf(false) }
+        var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("CATEGORIES", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            TextButton(onClick = { showCategoryManager = true }) { Text("Manage") }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(selected = selectedCategoryId == null, onClick = { selectedCategoryId = null }, label = { Text("Inbox / All") })
+            categories.forEach { category ->
+                FilterChip(selected = selectedCategoryId == category.id, onClick = { selectedCategoryId = category.id }, label = { Text(category.name) })
+            }
+        }
+        if (showCategoryManager) CategoryManagerDialog(categories, onCreateCategory, onRenameCategory, onDeleteCategory) { showCategoryManager = false }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("All", "Active", "Completed", "Overdue", "Due soon").forEach { option ->
