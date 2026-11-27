@@ -450,7 +450,7 @@ private fun TaskRow(
                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                     Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Surface(color = MyDayColors.SurfaceVariant, shape = RoundedCornerShape(6.dp)) {
+                        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(6.dp)) {
                             Text(task.priority, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                         }
@@ -470,7 +470,7 @@ private fun TaskRow(
                 }
             }
             if (!task.isCompleted) {
-                HorizontalDivider(color = MyDayColors.SoftNeutral)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(Modifier.fillMaxWidth().padding(start = 44.dp, top = 3.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -576,7 +576,7 @@ private fun AddTaskDialog(
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.onSurface, focusedLabelColor = MaterialTheme.colorScheme.onSurface, cursorColor = MaterialTheme.colorScheme.onSurface)
                     )
-                    Surface(shape = RoundedCornerShape(13.dp), color = MyDayColors.SoftNeutralAlt) {
+                    Surface(shape = RoundedCornerShape(13.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                     val voiceCaptureLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.StartActivityForResult()
                     ) { result ->
@@ -682,18 +682,18 @@ private fun AddTaskDialog(
                 }
                 if (scheduledAt != null) {
                     if (conflicts.isNotEmpty()) {
-                        Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.WarningBackground), shape = RoundedCornerShape(12.dp)) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), shape = RoundedCornerShape(12.dp)) {
                             Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Schedule conflict detected", color = MyDayColors.WarningText, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Schedule conflict detected", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 conflicts.forEach { conflict ->
                                     Text(
                                         "Overlaps with ${conflict.title} · " +
                                             DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.startMillis)) +
                                             "–" + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(conflict.endMillis)),
-                                        color = MyDayColors.WarningText, fontSize = 11.sp
+                                        color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 11.sp
                                     )
                                 }
-                                Text("You can still save, but review the overlapping time blocks.", color = MyDayColors.WarningText, fontSize = 10.sp)
+                                Text("You can still save, but review the overlapping time blocks.", color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 10.sp)
                             }
                         }
                     }
@@ -986,7 +986,7 @@ private fun WeeklyTimetable(
                                     hourTasks.take(2).forEach { task ->
                                         Surface(
                                             modifier = Modifier.fillMaxWidth().height(30.dp),
-                                            color = if (task.isCompleted) MyDayColors.SurfaceMuted else MyDayColors.SoftLime,
+                                            color = if (task.isCompleted) MaterialTheme.colorScheme.surfaceVariant else MyDayColors.SoftLime,
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Column(Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
@@ -1104,7 +1104,7 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
         shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Surface(shape = RoundedCornerShape(18.dp), color = MyDayColors.SoftLime, modifier = Modifier.size(58.dp)) {
+            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(58.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp)) }
             }
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -1363,7 +1363,7 @@ private fun SettingsRow(
             .then(Modifier.clickable(onClick = onClick)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(shape = RoundedCornerShape(11.dp), color = MyDayColors.SoftNeutralAlt, modifier = Modifier.size(37.dp)) {
+        Surface(shape = RoundedCornerShape(11.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(37.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(19.dp)) }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
