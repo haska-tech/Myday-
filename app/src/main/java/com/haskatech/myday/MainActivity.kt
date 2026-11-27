@@ -956,7 +956,7 @@ private fun WeeklyTimetable(
                             color = when {
                                 isSelected -> Lime
                                 isToday -> MyDayColors.SoftLime
-                                else -> MyDayColors.MaterialTheme.colorScheme.background
+                                else -> MaterialTheme.colorScheme.background
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
