@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.haskatech.myday.settings.ThemeMode
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -79,10 +82,31 @@ private val MyDayShapes = Shapes(
     large = RoundedCornerShape(22.dp)
 )
 
+private val MyDayDarkColorScheme = darkColorScheme(
+    primary = MyDayColors.Lime,
+    onPrimary = MyDayColors.Navy,
+    secondary = MyDayColors.Lime,
+    onSecondary = MyDayColors.Navy,
+    background = Color(0xFF101923),
+    onBackground = Color(0xFFEAF0F6),
+    surface = Color(0xFF182535),
+    onSurface = Color(0xFFEAF0F6),
+    surfaceVariant = Color(0xFF263649),
+    onSurfaceVariant = Color(0xFFB5C1CE),
+    outline = Color(0xFF435267),
+    primaryContainer = Color(0xFF34451F),
+    onPrimaryContainer = Color(0xFFEAF2D4)
+)
+
 @Composable
-fun MyDayTheme(content: @Composable () -> Unit) {
+fun MyDayTheme(themeMode: ThemeMode = ThemeMode.SYSTEM, content: @Composable () -> Unit) {
+    val useDarkTheme = when (themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
     MaterialTheme(
-        colorScheme = MyDayColorScheme,
+        colorScheme = if (useDarkTheme) MyDayDarkColorScheme else MyDayColorScheme,
         typography = MyDayTypography,
         shapes = MyDayShapes,
         content = content
