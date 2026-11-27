@@ -45,4 +45,20 @@ class MyDayBackupManagerTest {
         val broken = """{"format":"MyDayBackup","formatVersion":1,"tasks":[],"timeEntries":[{"id":1,"taskId":99,"startedAtMillis":1,"endedAtMillis":2,"durationMillis":1}],"activeSession":null}"""
         assertThrows(IllegalArgumentException::class.java) { MyDayBackupManager.decode(broken) }
     }
+    @Test fun backupRoundTripPreservesCategoriesAndTaskAssignments() {
+        val category = CategoryEntity(id = 22, name = "Side project", colorHex = "#123ABC", iconKey = "work")
+        val task = TaskEntity(id = 9, title = "Prepare release", categoryId = 22)
+        val decoded = MyDayBackupManager.decode(
+            MyDayBackupManager.encode(listOf(task), emptyList(), null, listOf(category))
+        )
+        assertEquals(listOf(category), decoded.categories)
+        assertEquals(22L, decoded.tasks.single().categoryId)
+    }
+
+    @Test fun legacyVersionOneBackupRemainsReadable() {
+        val legacy = """{"format":"MyDayBackup","formatVersion":1,"tasks":[],"timeEntries":[],"activeSession":null}"""
+        val decoded = MyDayBackupManager.decode(legacy)
+        assertEquals(emptyList<CategoryEntity>(), decoded.categories)
+    }
+
 }
