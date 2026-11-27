@@ -421,6 +421,16 @@ private fun TasksScreen(
             }
         }
         if (showCategoryManager) CategoryManagerDialog(categories, onCreateCategory, onRenameCategory, onDeleteCategory) { showCategoryManager = false }
+        if (selectedCategoryId != null || inboxOnly) {
+            val scoped = if (inboxOnly) tasks.filter { it.categoryId == null } else tasks.filter { it.categoryId == selectedCategoryId }
+            val trackedMinutes = scoped.sumOf { it.timeSpentMillis } / 60_000L
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp)) {
+                Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(if (inboxOnly) "INBOX OVERVIEW" else "${categories.firstOrNull { it.id == selectedCategoryId }?.name ?: "CATEGORY"} OVERVIEW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${scoped.count { it.isCompleted }} completed · ${scoped.count { !it.isCompleted }} pending · ${scoped.count { !it.isCompleted && it.deadlineAtMillis != null && it.deadlineAtMillis < nowMillis }} overdue · ${trackedMinutes / 60}h ${trackedMinutes % 60}m tracked", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("All", "Active", "Completed", "Overdue", "Due soon").forEach { option ->
