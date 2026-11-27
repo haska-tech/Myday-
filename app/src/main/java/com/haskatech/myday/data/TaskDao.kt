@@ -96,6 +96,9 @@ interface TaskDao {
         ) else null
     }
 
+    @Query("UPDATE tasks SET categoryId = :categoryId WHERE id = :taskId")
+    suspend fun setCategory(taskId: Long, categoryId: Long?): Int
+
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: Long)
 }
