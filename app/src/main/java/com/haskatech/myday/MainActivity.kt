@@ -529,7 +529,7 @@ private fun CategoryManagerDialog(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = selectedId == category.id, onClick = { selectedId = category.id; creating = false })
                         Text(category.name, modifier = Modifier.weight(1f))
-                        if (!category.isDefault) Text("Custom", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (category.isDefault) Text("Default", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 OutlinedButton(onClick = { selectedId = null; creating = true; name = ""; color = colors.first() }, modifier = Modifier.fillMaxWidth()) { Text("+ Create category") }
@@ -546,10 +546,10 @@ private fun CategoryManagerDialog(
         },
         confirmButton = {
             Row {
-                if (selected != null && !selected.isDefault) TextButton(onClick = { onDelete(selected.id); selectedId = null }) { Text("Delete") }
+                if (selected != null) TextButton(onClick = { onDelete(selected.id); selectedId = null }) { Text("Delete") }
                 TextButton(onClick = {
                     if (name.isNotBlank()) {
-                        if (creating) onCreate(name, color) else selected?.takeIf { !it.isDefault }?.let { onRename(it.id, name, color) }
+                        if (creating) onCreate(name, color) else selected?.let { onRename(it.id, name, color) }
                     }
                     onDismiss()
                 }) { Text(if (creating) "Create" else "Save") }
