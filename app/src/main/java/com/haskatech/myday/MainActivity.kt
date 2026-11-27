@@ -112,6 +112,7 @@ private fun MyDayApp(
     }
     var taskBeingEdited by remember { mutableStateOf<TaskEntity?>(null) }
     var showTopThreeLimit by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
