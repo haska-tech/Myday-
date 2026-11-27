@@ -58,10 +58,7 @@ import com.haskatech.myday.settings.WeekStartDay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val Navy = MyDayColors.Navy
 private val Lime = MyDayColors.Lime
-private val Paper = MyDayColors.Paper
-private val Muted = MyDayColors.Muted
 
 class MainActivity : ComponentActivity() {
     private val quickAddRequest = mutableIntStateOf(0)
@@ -136,13 +133,13 @@ private fun MyDayApp(
     }
 
     Scaffold(
-        containerColor = Paper,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text("MyDay", color = Navy, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
-                        Text("PLAN WITH PURPOSE", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                        Text("MyDay", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                        Text("PLAN WITH PURPOSE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                     }
                 },
                 navigationIcon = {
@@ -152,15 +149,15 @@ private fun MyDayApp(
                         color = Lime
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "MyDay", tint = Navy, modifier = Modifier.size(19.dp))
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "MyDay", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(19.dp))
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Paper)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = MyDayColors.White, tonalElevation = 6.dp) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp) {
                 labels.forEachIndexed { index, label ->
                     NavigationBarItem(
                         selected = tab == index,
@@ -168,11 +165,11 @@ private fun MyDayApp(
                         icon = { Icon(icons[index], contentDescription = label, modifier = Modifier.size(21.dp)) },
                         label = { Text(label, fontSize = 10.sp, fontWeight = if (tab == index) FontWeight.Bold else FontWeight.Medium) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Navy,
-                            selectedTextColor = Navy,
+                            selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
                             indicatorColor = Lime.copy(alpha = 0.38f),
-                            unselectedIconColor = Muted,
-                            unselectedTextColor = Muted
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -182,7 +179,7 @@ private fun MyDayApp(
             FloatingActionButton(
                 onClick = { showAddDialog = true },
                 containerColor = Lime,
-                contentColor = Navy,
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = RoundedCornerShape(18.dp),
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 5.dp, pressedElevation = 2.dp)
             ) {
@@ -277,10 +274,10 @@ private fun TodayScreen(
                 java.time.LocalDate.now(PlannerTime.zoneId())
                     .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault()))
                     .uppercase(Locale.getDefault()),
-                color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
+                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp
             )
-            Text("Make today count.", color = Navy, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
-            Text("A little progress, every day.", color = Muted, fontSize = 14.sp)
+            Text("Make today count.", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp)
+            Text("A little progress, every day.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
 
         }
         item {
@@ -291,12 +288,12 @@ private fun TodayScreen(
             ) {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("FOCUS TIMER", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Make time for what matters.", color = Navy, fontWeight = FontWeight.SemiBold)
-                        Text("Start a focused work session.", color = Muted, fontSize = 12.sp)
+                        Text("FOCUS TIMER", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Make time for what matters.", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                        Text("Start a focused work session.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                     Button(onClick = { context.startActivity(Intent(context, com.haskatech.myday.focus.PomodoroActivity::class.java)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
+                        colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSurface)) {
                         Text("Focus")
                     }
                 }
@@ -304,7 +301,7 @@ private fun TodayScreen(
         }
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Navy),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface),
                 shape = RoundedCornerShape(24.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
@@ -322,8 +319,8 @@ private fun TodayScreen(
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Your tasks", color = Navy, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                Text("$completed / ${tasks.size} done", color = Muted, fontSize = 12.sp)
+                Text("Your tasks", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                Text("$completed / ${tasks.size} done", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
         }
         if (tasks.isEmpty()) {
@@ -360,9 +357,9 @@ private fun TasksScreen(
     )
     val (unscheduledTasks, scheduledTasks) = com.haskatech.myday.data.TaskGrouping.partition(filteredTasks)
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 20.dp)) {
-        Text("YOUR WORKSPACE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Tasks", color = Navy, style = MaterialTheme.typography.headlineLarge)
-        Text("Everything you need to move forward.", color = Muted, fontSize = 14.sp)
+        Text("YOUR WORKSPACE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Tasks", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
+        Text("Everything you need to move forward.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("All", "Active", "Completed").forEach { option ->
@@ -401,8 +398,8 @@ private fun TasksScreen(
                 if (unscheduledTasks.isNotEmpty()) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("UNSCHEDULED · ${unscheduledTasks.size}", color = Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("Tasks you have captured but not assigned a date or time.", color = Muted, fontSize = 12.sp)
+                            Text("UNSCHEDULED · ${unscheduledTasks.size}", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Tasks you have captured but not assigned a date or time.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
                     }
                     items(unscheduledTasks, key = { it.id }) { task ->
@@ -411,7 +408,7 @@ private fun TasksScreen(
                 }
                 if (scheduledTasks.isNotEmpty()) {
                     item {
-                        Text("SCHEDULED · ${scheduledTasks.size}", color = Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("SCHEDULED · ${scheduledTasks.size}", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     items(scheduledTasks, key = { it.id }) { task ->
                         TaskRow(task, onToggle, onTopPriority, onDelete, tracking, nowMillis, onStartTracking, onPauseTracking, onStopTracking)
@@ -447,28 +444,28 @@ private fun TaskRow(
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle(task, it) },
-                    colors = CheckboxDefaults.colors(checkedColor = Navy))
+                    colors = CheckboxDefaults.colors(checkedColor = MyDayColors.Navy))
                 Column(Modifier.weight(1f).padding(start = 4.dp)) {
-                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
+                    Text(task.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                     Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                         Surface(color = MyDayColors.SurfaceVariant, shape = RoundedCornerShape(6.dp)) {
-                            Text(task.priority, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                            Text(task.priority, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                         }
                         Text("Tracked " + TimeTrackingRules.formatDuration(task.timeSpentMillis + elapsed),
-                            color = Muted, fontSize = 11.sp)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }
                 }
                 if (onEdit != null) {
                     IconButton(onClick = { onEdit(task) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit task", tint = Muted)
+                        Icon(Icons.Default.Edit, contentDescription = "Edit task", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 if (onDelete != null) {
                     IconButton(onClick = { onDelete(task) }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete task", tint = Muted)
+                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete task", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -509,7 +506,7 @@ private fun TaskRow(
                     }
                 }
             } else {
-                Text("Completed", color = Muted, fontSize = 11.sp,
+                Text("Completed", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp,
                     modifier = Modifier.padding(start = 52.dp, top = 2.dp))
             }
         }
@@ -563,8 +560,8 @@ private fun AddTaskDialog(
         tonalElevation = 4.dp,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(if (initialTask == null) "New task" else "Edit task", color = Navy, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                Text(if (initialTask == null) "Capture it now. Organise it when you're ready." else "Update the details or move this task to a new time.", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Normal)
+                Text(if (initialTask == null) "New task" else "Edit task", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text(if (initialTask == null) "Capture it now. Organise it when you're ready." else "Update the details or move this task to a new time.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Normal)
             }
         },
         text = {
@@ -577,7 +574,7 @@ private fun AddTaskDialog(
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Navy, focusedLabelColor = Navy, cursorColor = Navy)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.onSurface, focusedLabelColor = MaterialTheme.colorScheme.onSurface, cursorColor = MaterialTheme.colorScheme.onSurface)
                     )
                     Surface(shape = RoundedCornerShape(13.dp), color = MyDayColors.SoftNeutralAlt) {
                     val voiceCaptureLauncher = rememberLauncherForActivityResult(
@@ -609,17 +606,17 @@ private fun AddTaskDialog(
                         },
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(Icons.Default.Mic, contentDescription = "Add task by voice", tint = Navy)
+                        Icon(Icons.Default.Mic, contentDescription = "Add task by voice", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     }
                 }
-                Text("PRIORITY", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("PRIORITY", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("High", "Normal", "Low").forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option }, label = { Text(option) })
                     }
                 }
-                Text("URGENCY", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("URGENCY", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Low", "Normal", "High", "Critical").forEach { option ->
                         FilterChip(selected = urgency == option, onClick = { urgency = option }, label = { Text(option, fontSize = 11.sp) })
@@ -673,7 +670,7 @@ private fun AddTaskDialog(
                 if (!scheduledInFuture) {
                     Text("Choose a future date and time.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
-                Text("ESTIMATED DURATION", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("ESTIMATED DURATION", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     listOf<Int?>(null, 15, 30, 45, 60, 90, 120).forEach { minutes ->
                         FilterChip(
@@ -701,27 +698,27 @@ private fun AddTaskDialog(
                         }
                     }
                     if (initialTask == null) {
-                        Text("REPEAT", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("REPEAT", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf("None", "Daily", "Weekly", "Monthly").forEach { option ->
                                 FilterChip(selected = recurrenceRule == option, onClick = { recurrenceRule = option }, label = { Text(option, fontSize = 11.sp) })
                             }
                         }
                     } else if (initialTask.recurrenceRule != "None") {
-                        Text("Recurring task · ${initialTask.recurrenceRule}", color = Muted, fontSize = 11.sp)
-                        Text("APPLY CHANGES TO", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("Recurring task · ${initialTask.recurrenceRule}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        Text("APPLY CHANGES TO", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             FilterChip(selected = !applyToSeries, onClick = { applyToSeries = false }, label = { Text("This occurrence", fontSize = 10.sp) })
                             FilterChip(selected = applyToSeries, onClick = { applyToSeries = true }, label = { Text("This and future", fontSize = 10.sp) })
                         }
-                        Text("Past occurrences stay unchanged.", color = Muted, fontSize = 10.sp)
+                        Text("Past occurrences stay unchanged.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
-                        Text("Enable reminder", color = Navy, fontSize = 13.sp)
+                        Text("Enable reminder", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
                     }
                     if (reminderEnabled) {
-                        Text("REMIND ME", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("REMIND ME", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf(0, 5, 10, 15).forEach { minutes ->
                                 FilterChip(
@@ -747,11 +744,11 @@ private fun AddTaskDialog(
                 val reminder = if (reminderEnabled) scheduledAt?.minus(reminderOffsetMinutes * 60_000L) else null
                 onAdd(title, priority, scheduledAt, reminder, deadlineAt, recurrenceRule, plannedDurationMinutes, applyToSeries, urgency)
             }, enabled = canSave, shape = RoundedCornerShape(13.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Navy)) {
+                colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = MaterialTheme.colorScheme.onSurface)) {
                 Text(if (initialTask == null) "Save task" else "Save changes", fontWeight = FontWeight.Bold)
             }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(13.dp)) { Text("Cancel", color = Muted) } }
+        dismissButton = { OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(13.dp)) { Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
     )
 }
 
@@ -780,9 +777,9 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
     }.sortedBy { it.scheduledAtMillis }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 18.dp)) {
-        Text("YOUR SCHEDULE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Calendar", color = Navy, style = MaterialTheme.typography.headlineLarge)
-        Text("Make space for what matters.", color = Muted, fontSize = 14.sp)
+        Text("YOUR SCHEDULE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Calendar", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
+        Text("Make space for what matters.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Day", "Week", "Month").forEach { option ->
@@ -806,7 +803,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
                     "Week" -> "${weekStart.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))} – ${weekStart.plusDays(6).format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}"
                     else -> selectedDate.format(monthFormatter)
                 },
-                color = Navy, fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold
             )
             IconButton(onClick = {
                 selectedDate = when (view) {
@@ -820,7 +817,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
             Row(Modifier.fillMaxWidth()) {
                 weekdayLabels.forEach { day ->
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(day, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(day, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -835,18 +832,18 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
                             color = when {
                                 date == selectedDate -> Lime
                                 date == java.time.LocalDate.now(zone) -> MyDayColors.SoftLime
-                                else -> MyDayColors.White
+                                else -> MaterialTheme.colorScheme.surface
                             },
                             shape = RoundedCornerShape(12.dp),
                             border = if (date == selectedDate) null else androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.Divider)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center) {
-                                Text(date.dayOfMonth.toString(), color = if (inMonth) Navy else Muted,
+                                Text(date.dayOfMonth.toString(), color = if (inMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal)
                                 if (count > 0) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     repeat(count.coerceAtMost(3)) {
-                                        Box(Modifier.size(3.dp).background(if (date == selectedDate) Navy else MyDayColors.LimeDeep, RoundedCornerShape(50)))
+                                        Box(Modifier.size(3.dp).background(if (date == selectedDate) MaterialTheme.colorScheme.onSurface else MyDayColors.LimeDeep, RoundedCornerShape(50)))
                                     }
                                 }
                             }
@@ -855,7 +852,7 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("Selected day · ${selectedDate.format(dateFormatter)}", color = Navy, fontWeight = FontWeight.Bold)
+            Text("Selected day · ${selectedDate.format(dateFormatter)}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
         }
         if (view == "Week") {
             val tasksByDate = visibleDates.associateWith { tasksFor(it) }
@@ -879,23 +876,23 @@ private fun CalendarScreen(tasks: List<TaskEntity>, weekStartDay: WeekStartDay, 
                             Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.width(76.dp)) {
                                     Text(date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")),
-                                        color = Muted, fontSize = 11.sp)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                     Text(DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault()).apply {
                                         timeZone = java.util.TimeZone.getTimeZone(zone)
                                     }.format(Date(task.scheduledAtMillis!!)),
-                                        color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
                                 Column(Modifier.weight(1f)) {
-                                    Text(task.title, color = Navy, fontWeight = FontWeight.SemiBold,
+                                    Text(task.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
                                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
                                     val details = listOfNotNull(
                                         if (task.reminderAtMillis != null) "Reminder" else null,
                                         if (task.recurrenceRule != "None") "Repeats ${task.recurrenceRule.lowercase()}" else null,
                                         if (task.isCompleted) "Completed" else null
                                     )
-                                    if (details.isNotEmpty()) Text(details.joinToString(" · "), color = Muted, fontSize = 11.sp)
+                                    if (details.isNotEmpty()) Text(details.joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                 }
-                                if (task.priority == "High") Text("HIGH", color = Navy, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                if (task.priority == "High") Text("HIGH", color = MaterialTheme.colorScheme.onSurface, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -920,12 +917,12 @@ private fun WeeklyTimetable(
     val dayFormatter = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
 
-    Text("WEEK AT A GLANCE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-    Text("Swipe sideways to see all 7 days", color = Muted, fontSize = 11.sp)
+    Text("WEEK AT A GLANCE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+    Text("Swipe sideways to see all 7 days", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
     Spacer(Modifier.height(8.dp))
     Surface(
         modifier = Modifier.fillMaxWidth().height(560.dp),
-        color = MyDayColors.White,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(18.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, MyDayColors.BorderStrong)
     ) {
@@ -933,7 +930,7 @@ private fun WeeklyTimetable(
             Row(Modifier.horizontalScroll(horizontalState)) {
                 Column {
                     Box(Modifier.width(54.dp).height(58.dp), contentAlignment = Alignment.Center) {
-                        Text(PlannerTime.utcOffsetLabel(), color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(PlannerTime.utcOffsetLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                     PlannerTime.dayHours.forEach { hour ->
                         Box(
@@ -942,7 +939,7 @@ private fun WeeklyTimetable(
                         ) {
                             Text(
                                 java.time.LocalTime.of(hour, 0).format(timeFormatter),
-                                color = Muted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 9.sp,
                                 modifier = Modifier.padding(top = 3.dp)
                             )
@@ -959,7 +956,7 @@ private fun WeeklyTimetable(
                             color = when {
                                 isSelected -> Lime
                                 isToday -> MyDayColors.SoftLime
-                                else -> MyDayColors.Paper
+                                else -> MyDayColors.MaterialTheme.colorScheme.background
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -968,8 +965,8 @@ private fun WeeklyTimetable(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Text(date.format(dayFormatter).uppercase(), color = Navy, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                Text(date.dayOfMonth.toString(), color = Navy, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                                Text(date.format(dayFormatter).uppercase(), color = MaterialTheme.colorScheme.onSurface, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text(date.dayOfMonth.toString(), color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
                         PlannerTime.dayHours.forEach { hour ->
@@ -979,7 +976,7 @@ private fun WeeklyTimetable(
                             Box(
                                 Modifier.fillMaxWidth().height(72.dp)
                                     .padding(end = 1.dp)
-                                    .background(if (isToday) MyDayColors.PaperTint else MyDayColors.White)
+                                    .background(if (isToday) MyDayColors.PaperTint else MaterialTheme.colorScheme.surface)
                                     .then(Modifier)
                             ) {
                                 Column(
@@ -994,10 +991,10 @@ private fun WeeklyTimetable(
                                         ) {
                                             Column(Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
                                                 val taskTime = java.time.Instant.ofEpochMilli(task.scheduledAtMillis!!).atZone(zone).toLocalTime()
-                                                Text(taskTime.format(timeFormatter), color = Muted, fontSize = 7.sp, maxLines = 1)
+                                                Text(taskTime.format(timeFormatter), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 7.sp, maxLines = 1)
                                                 Text(
                                                     task.title,
-                                                    color = Navy,
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     fontSize = 8.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     maxLines = 1,
@@ -1008,7 +1005,7 @@ private fun WeeklyTimetable(
                                         }
                                     }
                                     if (hourTasks.size > 2) {
-                                        Text("+${hourTasks.size - 2} more", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                        Text("+${hourTasks.size - 2} more", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -1029,9 +1026,9 @@ private fun WeeklyTimetable(
         }
     }
     if (dates.all { tasksByDate[it].orEmpty().isEmpty() }) {
-        Text("No tasks scheduled this week yet.", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+        Text("No tasks scheduled this week yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
     } else {
-        Text("Tasks appear in their scheduled hour. Times use your device timezone.", color = Muted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+        Text("Tasks appear in their scheduled hour. Times use your device timezone.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -1044,15 +1041,15 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
     }
     val activeNow = tasks.count { !it.isCompleted }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("YOUR PROGRESS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-        Text("Insights", color = Navy, style = MaterialTheme.typography.headlineLarge)
-        Text("A local view of your work and focus.", color = Muted, fontSize = 14.sp)
+        Text("YOUR PROGRESS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text("Insights", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
+        Text("A local view of your work and focus.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             com.haskatech.myday.data.AnalyticsRange.values().forEach { range ->
                 FilterChip(selected = selectedRange == range, onClick = { selectedRange = range }, label = { Text(range.label, fontSize = 10.sp) })
             }
         }
-        Text("${report.rangeStart.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))} – ${report.rangeEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}", color = Muted, fontSize = 11.sp)
+        Text("${report.rangeStart.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))} – ${report.rangeEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             AnalyticsMetricCard("Tasks created", report.tasksCreated.toString(), Modifier.weight(1f))
             AnalyticsMetricCard("Cohort complete", "${report.completionRatePercent}%", Modifier.weight(1f))
@@ -1063,18 +1060,18 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
         }
         Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Daily focus trend", color = Navy, fontWeight = FontWeight.Bold)
-                Text("Tracked time per local calendar day", color = Muted, fontSize = 11.sp)
-                if (report.daily.none { it.trackedMillis > 0L }) Text("No tracked focus time in this period yet.", color = Muted, fontSize = 12.sp)
+                Text("Daily focus trend", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                Text("Tracked time per local calendar day", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                if (report.daily.none { it.trackedMillis > 0L }) Text("No tracked focus time in this period yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 else {
                     val maxValue = report.daily.maxOf { it.trackedMillis }.coerceAtLeast(1L)
                     report.daily.takeLast(14).forEach { point ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(point.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d")), color = Muted, fontSize = 10.sp, modifier = Modifier.width(48.dp))
-                            Box(Modifier.weight(1f).height(10.dp).background(Paper, RoundedCornerShape(8.dp))) {
+                            Text(point.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d")), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, modifier = Modifier.width(48.dp))
+                            Box(Modifier.weight(1f).height(10.dp).background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))) {
                                 Box(Modifier.fillMaxWidth(point.trackedMillis.toFloat() / maxValue).height(10.dp).background(Lime, RoundedCornerShape(8.dp)))
                             }
-                            Text(TimeTrackingRules.formatDuration(point.trackedMillis), color = Navy, fontSize = 10.sp, modifier = Modifier.width(48.dp))
+                            Text(TimeTrackingRules.formatDuration(point.trackedMillis), color = MaterialTheme.colorScheme.onSurface, fontSize = 10.sp, modifier = Modifier.width(48.dp))
                         }
                     }
                 }
@@ -1082,21 +1079,21 @@ private fun InsightsScreen(tasks: List<TaskEntity>, tracking: TimeTrackingSessio
         }
         Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text("Task outcomes", color = Navy, fontWeight = FontWeight.Bold)
-                Text("${report.completedFromCohort} of ${report.tasksCreated} tasks created in this period are currently complete.", color = Muted, fontSize = 12.sp)
-                LinearProgressIndicator(progress = { report.completionRatePercent / 100f }, modifier = Modifier.fillMaxWidth(), color = Lime, trackColor = Paper)
-                Text("$activeNow active tasks across your workspace", color = Muted, fontSize = 11.sp)
+                Text("Task outcomes", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                Text("${report.completedFromCohort} of ${report.tasksCreated} tasks created in this period are currently complete.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                LinearProgressIndicator(progress = { report.completionRatePercent / 100f }, modifier = Modifier.fillMaxWidth(), color = Lime, trackColor = MaterialTheme.colorScheme.background)
+                Text("$activeNow active tasks across your workspace", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
         }
-        Text("Completion rate compares current task status for tasks created in the selected period. MyDay does not yet store completion timestamps, so historical completion dates are not inferred. Tracked time is split using your device timezone.", color = Muted, fontSize = 10.sp)
+        Text("Completion rate compares current task status for tasks created in the selected period. MyDay does not yet store completion timestamps, so historical completion dates are not inferred. Tracked time is split using your device timezone.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
     }
 }
 @Composable
 private fun AnalyticsMetricCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(modifier, colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(17.dp)) {
         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, color = Muted, fontSize = 10.sp)
-            Text(value, color = Navy, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+            Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -1108,10 +1105,10 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Surface(shape = RoundedCornerShape(18.dp), color = MyDayColors.SoftLime, modifier = Modifier.size(58.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(28.dp)) }
+                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp)) }
             }
-            Text(title, color = Navy, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Text(message, color = Muted, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
@@ -1148,9 +1145,9 @@ private fun SettingsScreen(
     }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("MAKE IT YOURS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
-            Text("Settings", color = Navy, style = MaterialTheme.typography.headlineLarge)
-            Text("A calmer way to plan, built around you.", color = Muted, fontSize = 14.sp)
+            Text("MAKE IT YOURS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+            Text("Settings", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge)
+            Text("A calmer way to plan, built around you.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         }
         SettingsGroup("YOUR EXPERIENCE") {
             SettingsRow(Icons.Default.Palette, "Appearance", when (settings.themeMode) {
@@ -1172,7 +1169,7 @@ private fun SettingsScreen(
         }
         SettingsGroup("BACKUP & RESTORE") {
             Text("Export a portable copy of tasks and tracked time, or restore a previous MyDay backup. Files stay under your control; no cloud account is required.",
-                color = Muted, fontSize = 11.sp, modifier = Modifier.padding(vertical = 8.dp))
+                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(vertical = 8.dp))
             TextButton(onClick = {
                 scope.launch {
                     runCatching { MyDayBackupManager.checkIntegrity(context) }
@@ -1206,7 +1203,7 @@ private fun SettingsScreen(
             SettingsRow(Icons.Default.AutoAwesome, "MyDay", "Plan with purpose") { activeSetting = "MyDay" }
             SettingsRow(Icons.Default.Info, "Version", "${BuildConfig.VERSION_NAME} · Build ${BuildConfig.VERSION_CODE}") { activeSetting = "Version" }
         }
-        Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = Muted, fontSize = 9.sp,
+        Text("MYDAY  ·  PLAN WITH PURPOSE", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 
@@ -1235,7 +1232,7 @@ private fun SettingsScreen(
             title = { Text("Default task reminder") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("New tasks will use this reminder lead time when you enable a reminder. You can still change it for each task.", color = Muted, fontSize = 12.sp)
+                    Text("New tasks will use this reminder lead time when you enable a reminder. You can still change it for each task.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     listOf(-1, 0, 5, 10, 15).forEach { minutes ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = settings.defaultReminderMinutes == minutes, onClick = { onReminderChange(minutes) })
@@ -1321,7 +1318,7 @@ private fun SettingsScreen(
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(title, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+        Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
         Card(colors = CardDefaults.cardColors(containerColor = MyDayColors.White), shape = RoundedCornerShape(18.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(content = content, modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp))
@@ -1342,11 +1339,11 @@ private fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(shape = RoundedCornerShape(11.dp), color = MyDayColors.SoftNeutralAlt, modifier = Modifier.size(37.dp)) {
-            Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = Navy, modifier = Modifier.size(19.dp)) }
+            Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(19.dp)) }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(title, color = Navy, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, color = Muted, fontSize = 10.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
         }
     }
 }
