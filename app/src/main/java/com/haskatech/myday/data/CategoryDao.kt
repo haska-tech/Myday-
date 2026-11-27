@@ -27,7 +27,7 @@ interface CategoryDao {
     @Query("UPDATE tasks SET categoryId = NULL WHERE categoryId = :categoryId")
     suspend fun moveTasksToInbox(categoryId: Long): Int
 
-    @Query("DELETE FROM categories WHERE id = :id AND isDefault = 0")
+    @Query("DELETE FROM categories WHERE id = :id")
     suspend fun deleteCustom(id: Long): Int
 
     @Transaction
