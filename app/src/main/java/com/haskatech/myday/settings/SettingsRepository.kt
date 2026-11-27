@@ -30,7 +30,7 @@ class SettingsRepository(private val context: Context) {
             focusMinutes = (p[FOCUS] ?: 25).coerceIn(1, 120),
             shortBreakMinutes = (p[SHORT_BREAK] ?: 5).coerceIn(1, 120),
             longBreakMinutes = (p[LONG_BREAK] ?: 15).coerceIn(1, 120),
-            defaultReminderMinutes = (p[REMINDER] ?: 15).coerceIn(5, 1440)
+            defaultReminderMinutes = (p[REMINDER] ?: 15).let { if (it in setOf(-1, 0, 5, 10, 15)) it else 15 }
         )
     }
 
@@ -39,7 +39,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setFocusMinutes(value: Int) = context.myDaySettingsDataStore.edit { it[FOCUS] = value.coerceIn(1, 120) }
     suspend fun setShortBreakMinutes(value: Int) = context.myDaySettingsDataStore.edit { it[SHORT_BREAK] = value.coerceIn(1, 120) }
     suspend fun setLongBreakMinutes(value: Int) = context.myDaySettingsDataStore.edit { it[LONG_BREAK] = value.coerceIn(1, 120) }
-    suspend fun setDefaultReminderMinutes(value: Int) = context.myDaySettingsDataStore.edit { it[REMINDER] = value.coerceIn(5, 1440) }
+    suspend fun setDefaultReminderMinutes(value: Int) = context.myDaySettingsDataStore.edit { it[REMINDER] = value.takeIf { it in setOf(-1, 0, 5, 10, 15) } ?: 15 }
 
     private companion object {
         val THEME = stringPreferencesKey("theme_mode")
