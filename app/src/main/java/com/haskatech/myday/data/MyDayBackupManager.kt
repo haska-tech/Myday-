@@ -12,19 +12,22 @@ import org.json.JSONObject
 
 /** Versioned JSON backup. Validation finishes before restore changes the database. */
 object MyDayBackupManager {
-    private const val FORMAT_VERSION = 1
+    private const val FORMAT_VERSION = 2
 
-    fun encode(tasks: List<TaskEntity>, entries: List<TimeTrackingEntryEntity>, session: TimeTrackingSessionEntity?): String =
+    fun encode(tasks: List<TaskEntity>, entries: List<TimeTrackingEntryEntity>, session: TimeTrackingSessionEntity?, categories: List<CategoryEntity> = emptyList()): String =
         JSONObject().put("format", "MyDayBackup").put("formatVersion", FORMAT_VERSION)
             .put("tasks", JSONArray().apply { tasks.forEach { put(it.toJson()) } })
+            .put("categories", JSONArray().apply { categories.forEach { put(it.toJson()) } })
             .put("timeEntries", JSONArray().apply { entries.forEach { put(it.toJson()) } })
             .put("activeSession", session?.toJson() ?: JSONObject.NULL).toString(2)
 
     fun decode(json: String): BackupSnapshot {
         val root = JSONObject(json)
         require(root.getString("format") == "MyDayBackup") { "This is not a MyDay backup file." }
-        require(root.getInt("formatVersion") == FORMAT_VERSION) { "This backup version is not supported." }
+        val version = root.getInt("formatVersion")
+        require(version in 1..FORMAT_VERSION) { "This backup version is not supported." }
         val tasks = root.getJSONArray("tasks").toObjects { it.toTask() }
+        val categories = if (version >= 2) root.getJSONArray("categories").toObjects { it.toCategory() } else emptyList()
         val entries = root.getJSONArray("timeEntries").toObjects { it.toEntry() }
         val session = root.optJSONObject("activeSession")?.toSession()
         require(tasks.map { it.id }.toSet().size == tasks.size) { "Backup contains duplicate task IDs." }
@@ -34,6 +37,12 @@ object MyDayBackupManager {
             "Backup contains invalid task data."
         }
         val taskIds = tasks.map { it.id }.toSet()
+        if (categories.isNotEmpty()) {
+            require(categories.map { it.id }.toSet().size == categories.size && categories.all { it.id > 0 && it.name.isNotBlank() })
+            require(tasks.all { it.categoryId == null || categories.any { category -> category.id == it.categoryId } }) {
+                "Backup contains tasks assigned to missing categories."
+            }
+        }
         require(entries.map { it.id }.toSet().size == entries.size) { "Backup contains duplicate time-entry IDs." }
         require(entries.all { it.id > 0 && it.taskId in taskIds && it.startedAtMillis >= 0L &&
             it.endedAtMillis >= it.startedAtMillis && it.durationMillis == it.endedAtMillis - it.startedAtMillis }) {
@@ -43,7 +52,7 @@ object MyDayBackupManager {
             (session.startedAtMillis == null || session.startedAtMillis >= 0L))) {
             "Backup contains an invalid active time-tracking session."
         }
-        return BackupSnapshot(tasks, entries, session)
+        return BackupSnapshot(tasks, entries, session, categories)
     }
 
     suspend fun checkIntegrity(context: Context): Boolean = withContext(Dispatchers.IO) {
@@ -55,11 +64,11 @@ object MyDayBackupManager {
         val database = MyDayDatabase.getDatabase(context)
         val snapshot = database.withTransaction {
             BackupSnapshot(database.taskDao().getAllTasks(), database.timeTrackingDao().getAllEntries(),
-                database.timeTrackingDao().getSession())
+                database.timeTrackingDao().getSession(), database.categoryDao().getAll())
         }
         val output = context.contentResolver.openOutputStream(uri)
             ?: throw IllegalStateException("Could not open the selected backup destination.")
-        output.bufferedWriter(Charsets.UTF_8).use { it.write(encode(snapshot.tasks, snapshot.entries, snapshot.session)) }
+        output.bufferedWriter(Charsets.UTF_8).use { it.write(encode(snapshot.tasks, snapshot.entries, snapshot.session, snapshot.categories)) }
     }
 
     suspend fun importFrom(context: Context, uri: Uri) {
@@ -80,6 +89,10 @@ object MyDayBackupManager {
             val existing = database.taskDao().getAllTasks()
             database.timeTrackingDao().clearEntries()
             database.taskDao().clearAllTasks()
+            if (snapshot.categories.isNotEmpty()) {
+                database.categoryDao().clearAll()
+                database.categoryDao().insertAll(snapshot.categories)
+            }
             if (snapshot.tasks.isNotEmpty()) database.taskDao().insertAll(snapshot.tasks)
             if (snapshot.entries.isNotEmpty()) database.timeTrackingDao().insertEntries(snapshot.entries)
             database.timeTrackingDao().clearSession()
@@ -94,6 +107,7 @@ object MyDayBackupManager {
         .put("recurrenceSeriesId", recurrenceSeriesId ?: JSONObject.NULL)
         .put("plannedDurationMinutes", plannedDurationMinutes ?: JSONObject.NULL)
         .putNullableLong("deadlineAtMillis", deadlineAtMillis).put("urgency", urgency)
+        .putNullableLong("categoryId", categoryId)
 
     private fun TimeTrackingEntryEntity.toJson() = JSONObject().put("id", id).put("taskId", taskId)
         .put("startedAtMillis", startedAtMillis).put("endedAtMillis", endedAtMillis).put("durationMillis", durationMillis)
@@ -113,7 +127,16 @@ object MyDayBackupManager {
         createdAtMillis = getLong("createdAtMillis"), timeSpentMillis = getLong("timeSpentMillis"),
         recurrenceSeriesId = optNullableString("recurrenceSeriesId"),
         plannedDurationMinutes = if (isNull("plannedDurationMinutes")) null else getInt("plannedDurationMinutes"),
-        deadlineAtMillis = optNullableLong("deadlineAtMillis"), urgency = optString("urgency", "Normal")
+        deadlineAtMillis = optNullableLong("deadlineAtMillis"), urgency = optString("urgency", "Normal"),
+        categoryId = optNullableLong("categoryId")
+    )
+    private fun CategoryEntity.toJson() = JSONObject().put("id", id).put("name", name)
+        .put("colorHex", colorHex).put("iconKey", iconKey).put("isDefault", isDefault)
+        .put("createdAtMillis", createdAtMillis)
+    private fun JSONObject.toCategory() = CategoryEntity(
+        id = getLong("id"), name = getString("name"), colorHex = getString("colorHex"),
+        iconKey = optString("iconKey", "folder"), isDefault = optBoolean("isDefault", false),
+        createdAtMillis = getLong("createdAtMillis")
     )
     private fun JSONObject.toEntry() = TimeTrackingEntryEntity(
         id = getLong("id"), taskId = getLong("taskId"), startedAtMillis = getLong("startedAtMillis"),
@@ -129,5 +152,6 @@ object MyDayBackupManager {
 data class BackupSnapshot(
     val tasks: List<TaskEntity>,
     val entries: List<TimeTrackingEntryEntity>,
-    val session: TimeTrackingSessionEntity?
+    val session: TimeTrackingSessionEntity?,
+    val categories: List<CategoryEntity> = emptyList()
 )
