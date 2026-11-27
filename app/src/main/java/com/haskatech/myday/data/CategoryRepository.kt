@@ -18,15 +18,15 @@ class CategoryRepository(private val dao: CategoryDao) {
     }
 
     suspend fun create(name: String, colorHex: String, iconKey: String = "folder"): Long? {
-        val clean = name.trim()
-        if (clean.isEmpty() || clean.length > 32 || !colorHex.matches(Regex("^#[0-9A-Fa-f]{6}$"))) return null
+        val clean = CategoryRules.cleanName(name) ?: return null
+        if (!CategoryRules.isValidColor(colorHex)) return null
         val id = dao.insert(CategoryEntity(name = clean, colorHex = colorHex.uppercase(), iconKey = iconKey))
         return id.takeIf { it > 0 }
     }
 
     suspend fun rename(id: Long, name: String, colorHex: String, iconKey: String): Boolean {
-        val clean = name.trim()
-        if (clean.isEmpty() || clean.length > 32 || !colorHex.matches(Regex("^#[0-9A-Fa-f]{6}$"))) return false
+        val clean = CategoryRules.cleanName(name) ?: return false
+        if (!CategoryRules.isValidColor(colorHex)) return false
         if (dao.getById(id) == null) return false
         return dao.update(id, clean, colorHex.uppercase(), iconKey) == 1
     }
